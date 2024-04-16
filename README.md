@@ -1,74 +1,103 @@
-# Basic TypeScript project template
+# Phaser Vite TypeScript Template
 
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/PhaserEditor2D/starter-template-basic-typescript)
+This is a Phaser 3 project template that uses Vite for bundling. It supports hot-reloading for quick development workflow, includes TypeScript support and scripts to generate production-ready builds.
 
-This is a Phaser Editor 2D v3 project template.
+**[This Template is also available as a JavaScript version.](https://github.com/phaserjs/template-vite)**
 
-## Configuration
+### Versions
 
-* It includes the latest Phaser v3 runtime as a node package.
-* It is coded in TypeScript. The `tsc` is included as a node package.
-* It includes a VS Code project configuration (`jsconfig.json` file).
+This template has been updated for:
 
-## Compiles the source code
+- [Phaser 3.80.1](https://github.com/phaserjs/phaser)
+- [Vite 5.1.4](https://github.com/vitejs/vite)
+- [TypeScript 5.3.3](https://github.com/microsoft/TypeScript)
 
-This project is based on TypeScript so for getting the game, first, you need to install TypeScript and other dependencies:
+![screenshot](screenshot.png)
 
-```bash
-$ npm install
-$ npm update
+## Requirements
+
+[Node.js](https://nodejs.org) is required to install dependencies and run scripts via `npm`.
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm install` | Install project dependencies |
+| `npm run dev` | Launch a development web server |
+| `npm run build` | Create a production build in the `dist` folder |
+
+## Writing Code
+
+After cloning the repo, run `npm install` from your project directory. Then, you can start the local development server by running `npm run dev`.
+
+The local development server runs on `http://localhost:8080` by default. Please see the Vite documentation if you wish to change this, or add SSL support.
+
+Once the server is running you can edit any of the files in the `src` folder. Vite will automatically recompile your code and then reload the browser.
+
+## Template Project Structure
+
+We have provided a default project structure to get you started. This is as follows:
+
+- `index.html` - A basic HTML page to contain the game.
+- `src` - Contains the game source code.
+- `src/main.ts` - The main **entry** point. This contains the game configuration and starts the game.
+- `src/vite-env.d.ts` - Global TypeScript declarations, provide types information.
+- `src/scenes/` - The Phaser Scenes are in this folder.
+- `public/style.css` - Some simple CSS rules to help with page layout.
+- `public/assets` - Contains the static assets used by the game.
+
+## Handling Assets
+
+Vite supports loading assets via JavaScript module `import` statements.
+
+This template provides support for both embedding assets and also loading them from a static folder. To embed an asset, you can import it at the top of the JavaScript file you are using it in:
+
+```js
+import logoImg from './assets/logo.png'
 ```
 
-Then, for running the game, you need to compile the TypeScript files:
+To load static files such as audio files, videos, etc place them into the `public/assets` folder. Then you can use this path in the Loader calls within Phaser:
 
-```bash
-$ npm run build
+```js
+preload ()
+{
+    //  This is an example of an imported bundled image.
+    //  Remember to import it at the top of this file
+    this.load.image('logo', logoImg);
+
+    //  This is an example of loading a static image
+    //  from the public/assets folder:
+    this.load.image('background', 'assets/bg.png');
+}
 ```
 
-It outputs the JavaScript code into the `game.js` file.
+When you issue the `npm run build` command, all static assets are automatically copied to the `dist/assets` folder.
 
-Often, you would like to run the TypeScript compiler in watch mode:
+## Deploying to Production
 
-```bash
-$ npm run watch
-```
+After you run the `npm run build` command, your code will be built into a single bundle and saved to the `dist` folder, along with any other assets your project imported, or stored in the public assets folder.
 
-## Run the editor
+In order to deploy your game, you will need to upload *all* of the contents of the `dist` folder to a public facing web server.
 
-* If you have NodeJS installed, you can run the editor using the `editor` NPM script, defined in the `package.json` file:
+## Customizing the Template
 
-    ```bash
-    $ npm install
-    $ npm run editor
-    ```
+### Vite
 
-* If you are in a remote environment (like the Gitpod.io IDE), then run the editor like this:
+If you want to customize your build, such as adding plugin (i.e. for loading CSS or fonts), you can modify the `vite/config.*.mjs` file for cross-project changes, or you can modify and/or create new configuration files and target them in specific npm tasks inside of `package.json`. Please see the [Vite documentation](https://vitejs.dev/) for more information.
 
-    ```bash
-    $ npm run editor-remote
-    ```
+## Join the Phaser Community!
 
-* If you want to see all the editor options, run:
+We love to see what developers like you create with Phaser! It really motivates us to keep improving. So please join our community and show-off your work 😄
 
-    ```bash
-    $ npx phasereditor2d-launcher -help
-    ```
+**Visit:** The [Phaser website](https://phaser.io) and follow on [Phaser Twitter](https://twitter.com/phaser_)<br />
+**Play:** Some of the amazing games [#madewithphaser](https://twitter.com/search?q=%23madewithphaser&src=typed_query&f=live)<br />
+**Learn:** [API Docs](https://newdocs.phaser.io), [Support Forum](https://phaser.discourse.group/) and [StackOverflow](https://stackoverflow.com/questions/tagged/phaser-framework)<br />
+**Discord:** Join us on [Discord](https://discord.gg/phaser)<br />
+**Code:** 2000+ [Examples](https://labs.phaser.io)<br />
+**Read:** The [Phaser World](https://phaser.io/community/newsletter) Newsletter<br />
 
-* If Phaser Editor 2D Core is globally installed, you can run:
+Created by [Phaser Studio](mailto:support@phaser.io). Powered by coffee, anime, pixels and love.
 
-    ```bash
-    $ PhaserEditor2D -project .
-    ```
+The Phaser logo and characters are &copy; 2011 - 2024 Phaser Studio Inc.
 
-## Gitpod
-
-This repository is ready for start coding in Gitpod, a Cloud Development Environment. You only need to [click on this link](https://gitpod.io/#https://github.com/PhaserEditor2D/starter-template-basic-typescript) for starting a new workspace.
-
-This is what Gitpod does:
-
-- Creates a workspace for this project.
-- Opens VS Code to edit this repo.
-- Installs & updates the dependencies of this repo.
-- Runs Phaser Editor 2D Core server in port `1959`.
-
-In the **Ports** panel in VS Code, it shows the links for opening the editor (port `1959`). It gives you the options of copy the URL, open the URL in a preview panel, or open the URL in a new tab.
+All rights reserved.
