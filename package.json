@@ -24,6 +24,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "phaser": "^3.60.0"
+    "phaser": "^3.60.0",
+    "phaser3-planck": "^0.0.4"
   }
 }

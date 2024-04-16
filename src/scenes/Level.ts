@@ -47,7 +47,7 @@ class Level extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-		
+
 		const paddleUp = this.tweens.add({
 			targets: this.paddle,
 			angle: -12,
@@ -75,6 +75,8 @@ class Level extends Phaser.Scene {
 			}
 			paddleDown.play()
 		})
+
+		this.tweens.
 	}
 
 	/* END-USER-CODE */

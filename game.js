@@ -128,6 +128,8 @@ class Level extends Phaser.Scene {
             }
             paddleDown.play();
         });
+        this.tweens.
+        ;
     }
 }
 /* END OF COMPILED CODE */
