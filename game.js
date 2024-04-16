@@ -1,8 +1,8 @@
 "use strict";
 window.addEventListener('load', function () {
     var game = new Phaser.Game({
-        width: 320,
-        height: 680,
+        width: 600,
+        height: 800,
         type: Phaser.AUTO,
         backgroundColor: "#242424",
         physics: {
@@ -128,8 +128,6 @@ class Level extends Phaser.Scene {
             }
             paddleDown.play();
         });
-        this.tweens.
-        ;
     }
 }
 /* END OF COMPILED CODE */

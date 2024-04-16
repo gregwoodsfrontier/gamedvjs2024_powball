@@ -1,5 +1,14 @@
 
 // You can write more code here
+import Planck, { Box, Circle } from 'planck';
+import { GameOptions } from '../gameOptions';
+import { toMeters } from '../plankUtils';
+import Phaser, { Game } from 'phaser';
+
+enum BodyType {
+    Ball,
+    Wall
+}
 
 /* START OF COMPILED CODE */
 
@@ -16,31 +25,28 @@ class Level extends Phaser.Scene {
 	editorCreate(): void {
 
 		// text_1
-		const text_1 = this.add.text(168, 458, "", {});
+		const text_1 = this.add.text(290, 444, "", {});
 		text_1.setOrigin(0.5, 0);
 		text_1.text = "Gamedevjs2024";
 		text_1.setStyle({ "fontFamily": "arial", "fontSize": "3em" });
 
-		// slope
-		const slope = this.add.rectangle(0, 350, 140, 20);
-		slope.angle = 12;
-		slope.isFilled = true;
+		// ball
+		const ball = this.add.ellipse(270, 398, 60, 60);
+		ball.isFilled = true;
+		ball.fillColor = 1356700;
+		ball.isStroked = true;
+		ball.strokeColor = 15635232;
+		ball.lineWidth = 10;
 
-		// paddle
-		const paddle = this.add.rectangle(71, 366, 60, 20);
-		paddle.angle = 12;
-		paddle.setOrigin(0, 0.5);
-		paddle.isFilled = true;
-		paddle.fillColor = 11994887;
-
-		this.paddle = paddle;
+		this.ball = ball;
 
 		this.events.emit("scene-awake");
 	}
 
-	private paddle!: Phaser.GameObjects.Rectangle;
+	private ball!: Phaser.GameObjects.Ellipse;
 
 	/* START-USER-CODE */
+	world!: Planck.World;
 
 	// Write your code here.
 
@@ -48,36 +54,47 @@ class Level extends Phaser.Scene {
 
 		this.editorCreate();
 
-		const paddleUp = this.tweens.add({
-			targets: this.paddle,
-			angle: -12,
-			duration: 10
-		})
-		paddleUp.persist = true
+		this.world = new Planck.World(new Planck.Vec2(0, GameOptions.gravity))
 
-		const paddleDown = this.tweens.add({
-			targets: this.paddle,
-			angle: 12,
-			duration: 10
-		})
-		paddleDown.persist = true
+		const ballBody: Planck.Body = this.world.createDynamicBody({
+            position : new Planck.Vec2(toMeters(this.ball.x), toMeters(this.ball.y))
+        });
+		ballBody.createFixture({
+            shape : new Circle(this.ball.width),
+            density : 1,
+            friction : 0.3,
+            restitution : 0.1
+        });
+        ballBody.setUserData({
+            sprite : this.ball,
+            type : BodyType.Ball,
+            // value : value,
+            // id : this.ballsAdded
+        })
 
-		this.input.keyboard?.on('keydown-A', () => {
-			if(paddleDown.isPlaying() || paddleUp.isPlaying() || this.paddle.angle <= -12) {
-				return
-			}
-			paddleUp.play()
-		})
-
-		this.input.keyboard?.on('keyup-A', () => {
-			if(paddleDown.isPlaying() || paddleUp.isPlaying()  || this.paddle.angle >= 12) {
-				return
-			}
-			paddleDown.play()
-		})
-
-		this.tweens.
 	}
+
+	createBall(posX : number, posY : number, value : number) : void {
+        const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
+        circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
+        const ball : Planck.Body = this.world.createDynamicBody({
+            position : new Planck.Vec2(toMeters(posX), toMeters(posY))
+        });
+        ball.createFixture({
+            shape : new Circle(toMeters(value * 10)),
+            density : 1,
+            friction : 0.3,
+            restitution : 0.1
+        });
+        ball.setUserData({
+            sprite : circle,
+            type : BodyType.Ball,
+            value : value,
+            // id : this.ballsAdded
+        })
+        // this.ballsAdded ++;
+    }
+
 
 	/* END-USER-CODE */
 }

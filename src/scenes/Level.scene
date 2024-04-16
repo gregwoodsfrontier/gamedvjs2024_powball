@@ -6,46 +6,36 @@
         "createMethodName": "editorCreate",
         "sceneKey": "Level",
         "compilerOutputLanguage": "TYPE_SCRIPT",
-        "borderWidth": 320,
-        "borderHeight": 680
+        "borderWidth": 600,
+        "borderHeight": 800
     },
     "displayList": [
         {
             "type": "Text",
             "id": "9a5ebf25-d774-4035-b779-608d99945bf3",
             "label": "text_1",
-            "x": 168,
-            "y": 458,
+            "x": 290,
+            "y": 444,
             "originX": 0.5,
             "text": "Gamedevjs2024",
             "fontFamily": "arial",
             "fontSize": "3em"
         },
         {
-            "type": "Rectangle",
-            "id": "90f12717-b7e7-4f6a-aa14-29a2682a6276",
-            "label": "slope",
-            "displayName": "slope",
-            "y": 350,
-            "angle": 12,
-            "isFilled": true,
-            "width": 140,
-            "height": 20
-        },
-        {
-            "type": "Rectangle",
-            "id": "e3dfda07-b726-4535-822f-378a7a9b89d4",
-            "label": "paddle",
-            "displayName": "paddle",
+            "type": "Ellipse",
+            "id": "90cffbac-3734-4070-947d-2da09476c4f5",
+            "label": "ball",
+            "displayName": "ball",
             "scope": "CLASS",
-            "x": 71,
-            "y": 366,
-            "angle": 12,
-            "originX": 0,
+            "x": 270,
+            "y": 398,
             "isFilled": true,
-            "fillColor": "#b70707",
+            "fillColor": "#14b39c",
+            "strokeColor": "#ee9320",
+            "lineWidth": 10,
+            "isStroked": true,
             "width": 60,
-            "height": 20
+            "height": 60
         }
     ],
     "plainObjects": [],
