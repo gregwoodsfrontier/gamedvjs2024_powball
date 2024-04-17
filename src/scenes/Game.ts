@@ -1,4 +1,4 @@
-import Planck, { 
+import { 
     Box, 
     Circle, 
     World, 
@@ -6,7 +6,8 @@ import Planck, {
     Contact,
     WorldManifold,
     Vec2Value,
-    Body
+    Body,
+    Chain
 } from 'planck';
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
@@ -44,56 +45,97 @@ export class Game extends Scene
         // create a Box2D world with gravity
         this.world = new World(new Vec2(0, GameOptions.gravity));
 
+        this.createBounds()
+
         // create three walls
-        this.createWall(this.game.config.width as number / 2, this.game.config.height as number - 10, this.game.config.width as number, 10);
-        this.createWall(10, this.game.config.height as number / 2, 10, this.game.config.height as number);
-        this.createWall(this.game.config.width as number - 10, this.game.config.height as number / 2, 10, this.game.config.height as number);
+        // this.createWall(this.game.config.width as number / 2, this.game.config.height as number - 10, this.game.config.width as number, 10);
+        // this.createWall(10, this.game.config.height as number / 2, 10, this.game.config.height as number);
+        // this.createWall(this.game.config.width as number - 10, this.game.config.height as number / 2, 10, this.game.config.height as number);
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
             delay : 300,
             callback : () => {
-                this.createBall(Phaser.Math.Between(30, this.game.config.width as number - 30), -10, 1);
+                this.createBall(Phaser.Math.Between(30, this.game.config.width as number - 30), 30, 1);
             },
             loop : true
         });
 
         // this is the collision listener used to process contacts
-        this.world.on('pre-solve', (contact : Contact)  => {
+        // this.world.on('pre-solve', (contact : Contact)  => {
 
-            // get both bodies user data
-            const userDataA : any = contact.getFixtureA().getBody().getUserData();
-            const userDataB : any = contact.getFixtureB().getBody().getUserData();
+        //     // get both bodies user data
+        //     const userDataA : any = contact.getFixtureA().getBody().getUserData();
+        //     const userDataB : any = contact.getFixtureB().getBody().getUserData();
 
-            // get the contact point
-            const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
-            const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
+        //     // get the contact point
+        //     const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
+        //     const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
 
-            // three nested "if" just to improve readability, to check for a collision we need:
-            // 1 - both bodies must be balls
-            if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
-                // both balls must have the same value
-                if (userDataA.value == userDataB.value) {
-                    // balls ids must not be already present in the array of ids 
-                    if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
+        //     // three nested "if" just to improve readability, to check for a collision we need:
+        //     // 1 - both bodies must be balls
+        //     if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
+        //         // both balls must have the same value
+        //         if (userDataA.value == userDataB.value) {
+        //             // balls ids must not be already present in the array of ids 
+        //             if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
                         
-                        // add bodies ids to ids array
-                        this.ids.push(userDataA.id)
-                        this.ids.push(userDataB.id)
+        //                 // add bodies ids to ids array
+        //                 this.ids.push(userDataA.id)
+        //                 this.ids.push(userDataB.id)
 
-                        // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids
-                        this.contactManagement.push({
-                            body1 : contact.getFixtureA().getBody(),
-                            body2 : contact.getFixtureB().getBody(),
-                            point : contactPoint,
-                            value : userDataA.value + 1,
-                            id1 : userDataA.id,
-                            id2 : userDataB.id
-                        })
-                    }
-                }  
+        //                 // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids
+        //                 this.contactManagement.push({
+        //                     body1 : contact.getFixtureA().getBody(),
+        //                     body2 : contact.getFixtureB().getBody(),
+        //                     point : contactPoint,
+        //                     value : userDataA.value + 1,
+        //                     id1 : userDataA.id,
+        //                     id2 : userDataB.id
+        //                 })
+        //             }
+        //         }  
+        //     }
+        // });
+    }
+
+    // method to create the bounds of the pin ball
+    createBounds() {
+        const lineWidth = 10
+        const data = [
+            lineWidth/2, lineWidth/2,
+            600-lineWidth/2, lineWidth/2,
+            600-lineWidth/2, 640,
+            300, 800,
+            lineWidth/2, 640
+        ]
+
+        const chainData = []
+        for(let i = 0; i < data.length/2 ; i++ ) {
+            let offset = 0
+            if(i == 3 || i == 5) {
+                offset = -lineWidth/2
             }
-        });
+            chainData.push(
+                Vec2(toMeters(data[i*2]), toMeters(data[i*2+1] + offset))
+            )
+        }
+
+        // add a Phaser Shape inside
+        const wall = this.add.polygon(0, 0, data)
+        wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
+
+        // add planck body here
+        const body = this.world.createBody()
+        body.createFixture({
+            shape: Chain(chainData, true),
+            density: 1,
+            filterGroupIndex: 1
+        })
+        body.setUserData({
+            sprite: wall,
+            type: bodyType.Wall
+        })
     }
 
     // method to create a ball
