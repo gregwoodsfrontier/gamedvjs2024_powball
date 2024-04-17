@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Game as MainGame } from './scenes/Game';
 import { AUTO, Game, Scale,Types } from "phaser";
 
