@@ -26,6 +26,7 @@
         "phaser": "^3.80.1",
         "phaser-planck-ts": "^0.0.0",
         "phaser3-planck": "^0.0.4",
-        "planck": "^1.0.2"
+        "planck": "^1.0.2",
+        "planck-renderer": "^2.2.0"
     }
 }

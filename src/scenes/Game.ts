@@ -3,11 +3,9 @@ import {
     Circle, 
     World, 
     Vec2,
-    Contact,
-    WorldManifold,
-    Vec2Value,
     Body,
-    Chain
+    Chain,
+    RevoluteJoint,
 } from 'planck';
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
@@ -15,7 +13,8 @@ import { toMeters, toPixels } from '../plankUtils';
 
 enum bodyType {
     Ball,
-    Wall
+    Wall,
+    Flipper
 }
 export class Game extends Scene
 {
@@ -25,6 +24,10 @@ export class Game extends Scene
     }
 
     world : World;
+    ground: Body;
+    leftFlipper: RevoluteJoint;
+    rightFlipper: RevoluteJoint;
+
     contactManagement : any[];
     ballsAdded : number;
     ids : number[];
@@ -45,7 +48,15 @@ export class Game extends Scene
         // create a Box2D world with gravity
         this.world = new World(new Vec2(0, GameOptions.gravity));
 
-        this.createBounds()
+        this.ground = this.createBounds()
+
+        this.leftFlipper = this.createFlipper(
+            this.world,
+            250,
+            300,
+            -30.0 * Math.PI / 180.0,
+            -5.0 * Math.PI / 180.0
+        )
 
         // create three walls
         // this.createWall(this.game.config.width as number / 2, this.game.config.height as number - 10, this.game.config.width as number, 10);
@@ -99,6 +110,46 @@ export class Game extends Scene
         // });
     }
 
+    // Create a flipper based on world, position, angle lower limit and higher limit
+    createFlipper(_world: World, posX: number, posY: number, lowAngle: number, highAngle: number) {
+        const jointData = {
+            enableMotor: true,
+            enableLimit: true,
+            maxMotorTorque: 1000.0,
+            motorSpeed: 0.0,
+            lowerAngle: lowAngle,
+            upperAngle: highAngle
+        }
+
+        const flipper = _world.createDynamicBody(Vec2(
+            toMeters(posX),
+            toMeters(posY)
+        ), 0)
+
+        flipper.createFixture(Box(
+            toMeters(50),
+            toMeters(10)
+        ), 1.0)
+
+        const rect = this.add.rectangle(
+            posX,
+            posY,
+            50,
+            10,
+            0xff0000
+        ).setOrigin(0.5, 1)
+
+        flipper.setUserData({
+            sprite: rect,
+            type: bodyType.Flipper
+        })
+
+        const joint = RevoluteJoint(jointData, this.ground, flipper, flipper.getPosition())
+        _world.createJoint(joint)
+
+        return joint
+    }
+
     // method to create the bounds of the pin ball
     createBounds() {
         const lineWidth = 10
@@ -121,10 +172,6 @@ export class Game extends Scene
             )
         }
 
-        // add a Phaser Shape inside
-        const wall = this.add.polygon(0, 0, data)
-        wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
-
         // add planck body here
         const body = this.world.createBody()
         body.createFixture({
@@ -132,10 +179,17 @@ export class Game extends Scene
             density: 1,
             filterGroupIndex: 1
         })
+
+        // add a Phaser Shape inside
+        const wall = this.add.polygon(0, 0, data)
+        wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
+
         body.setUserData({
             sprite: wall,
             type: bodyType.Wall
         })
+
+        return body
     }
 
     // method to create a ball
