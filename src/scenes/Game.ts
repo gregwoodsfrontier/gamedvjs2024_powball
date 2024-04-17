@@ -52,10 +52,12 @@ export class Game extends Scene
 
         this.leftFlipper = this.createFlipper(
             this.world,
-            250,
-            300,
-            -30.0 * Math.PI / 180.0,
-            -5.0 * Math.PI / 180.0
+            150,
+            675,
+            120,
+            10,
+            -5.0 * Math.PI / 180.0,
+            25.0 * Math.PI / 180.0
         )
 
         // create three walls
@@ -111,7 +113,15 @@ export class Game extends Scene
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
-    createFlipper(_world: World, posX: number, posY: number, lowAngle: number, highAngle: number) {
+    createFlipper(_world: World, posX: number, posY: number, width: number, height: number, lowAngle: number, highAngle: number) {
+        const rect = this.add.rectangle(
+            posX,
+            posY,
+            width*2,
+            height*2,
+            0xff0000
+        )
+        
         const jointData = {
             enableMotor: true,
             enableLimit: true,
@@ -121,23 +131,14 @@ export class Game extends Scene
             upperAngle: highAngle
         }
 
-        const flipper = _world.createDynamicBody(Vec2(
-            toMeters(posX),
-            toMeters(posY)
-        ), 0)
+        const flipper = _world.createDynamicBody({
+            position : new Vec2(toMeters(posX), toMeters(posY))
+        })
 
-        flipper.createFixture(Box(
-            toMeters(50),
-            toMeters(10)
-        ), 1.0)
-
-        const rect = this.add.rectangle(
-            posX,
-            posY,
-            50,
-            10,
-            0xff0000
-        ).setOrigin(0.5, 1)
+        flipper.createFixture({
+            shape: new Box(toMeters(width), toMeters(height), undefined, 0),
+            density: 1
+        })
 
         flipper.setUserData({
             sprite: rect,
@@ -156,9 +157,9 @@ export class Game extends Scene
         const data = [
             lineWidth/2, lineWidth/2,
             600-lineWidth/2, lineWidth/2,
-            600-lineWidth/2, 640,
+            600-lineWidth/2, 540,
             300, 800,
-            lineWidth/2, 640
+            lineWidth/2, 540
         ]
 
         const chainData = []
@@ -266,5 +267,7 @@ export class Game extends Scene
             userData.sprite.y = toPixels(bodyPosition.y);
             userData.sprite.rotation = bodyAngle;
         }
+
+        this.leftFlipper.setMotorSpeed(20.0)
     } 
 }
