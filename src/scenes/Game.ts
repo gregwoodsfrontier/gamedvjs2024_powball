@@ -8,7 +8,9 @@ import {
     RevoluteJoint,
     Contact,
     WorldManifold,
-    Vec2Value
+    Vec2Value,
+    AABB,
+    Fixture
 } from 'planck';
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
@@ -18,6 +20,17 @@ enum bodyType {
     Ball,
     Wall,
     Flipper
+}
+
+type ContactManagementDataType = {
+    body1 : Body,
+    body2 : Body,
+    point : Vec2Value,
+    value : number,
+    id1 : number,
+    id2 : number,
+    body1Vec: Vec2Value,
+    body2Vec: Vec2Value
 }
 export class Game extends Scene
 {
@@ -79,11 +92,6 @@ export class Game extends Scene
 
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
-        // create three walls
-        // this.createWall(this.game.config.width as number / 2, this.game.config.height as number - 10, this.game.config.width as number, 10);
-        // this.createWall(10, this.game.config.height as number / 2, 10, this.game.config.height as number);
-        // this.createWall(this.game.config.width as number - 10, this.game.config.height as number / 2, 10, this.game.config.height as number);
-
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
             delay : 900,
@@ -116,14 +124,16 @@ export class Game extends Scene
                         this.ids.push(userDataA.id)
                         this.ids.push(userDataB.id)
 
-                        // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids
+                        // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
                         this.contactManagement.push({
                             body1 : contact.getFixtureA().getBody(),
                             body2 : contact.getFixtureB().getBody(),
                             point : contactPoint,
                             value : userDataA.value + 1,
                             id1 : userDataA.id,
-                            id2 : userDataB.id
+                            id2 : userDataB.id,
+                            body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
+                            body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
                         })
                     }
                 }  
@@ -213,7 +223,7 @@ export class Game extends Scene
     }
 
     // method to create a ball
-    createBall(posX : number, posY : number, value : number) : void {
+    createBall(posX : number, posY : number, value : number) : Body {
         const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
         circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
         const ball : Body = this.world.createDynamicBody({
@@ -232,6 +242,8 @@ export class Game extends Scene
             id : this.ballsAdded
         })
         this.ballsAdded ++;
+
+        return ball
     }
 
     // method to create a wall
@@ -269,8 +281,7 @@ export class Game extends Scene
         if(this.contactManagement.length > 0) {
 
             // loop through all contacts
-            this.contactManagement.forEach((contact : any) => {
-
+            this.contactManagement.forEach((contact : ContactManagementDataType) => {
                 // add a time delay for ball destruction
                 this.time.addEvent({
                     delay: 100,
@@ -282,15 +293,39 @@ export class Game extends Scene
                 })
 
                 // adding a blast impulse to surrounding balls.
-           
+                const query: AABB = new AABB(
+                    new Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
+                    new Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
+                )
+
+                // query the world for fixtures inside the square, aka "radius"
+                this.world.queryAABB(query, (fixture: Fixture) => {
+                    const body: Body = fixture.getBody()
+                    const bodyPosition: Vec2 = body.getPosition()
+
+                    // const bodyDistance: number = Math.sqrt(Math.pow(bodyPosition.y - contact.point.y, 2) + Math.pow(bodyPosition.x - contact.point.x, 2))
+                    const angle : number = Math.atan2(bodyPosition.y - contact.point.y, bodyPosition.x - contact.point.x);
+
+                    // the explosion effect itself is just a linear velocity applied to bodies
+                    body.setLinearVelocity(new Vec2(GameOptions.blastImpulse * Math.cos(angle), GameOptions.blastImpulse * Math.sin(angle)));
+
+                    return true
+                })
                 
     
                 // add a time delay to create a new ball
                 this.time.addEvent({
                     delay: 200,
                     callback: () => {
-                        this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
+                        const ball = this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
                         // need a function to launch the ball upon creation
+                        const resultantVel = Vec2.add(contact.body1Vec, contact.body2Vec)
+                        resultantVel.normalize()
+                        ball.setLinearVelocity(new Vec2(
+                            GameOptions.launchImpulse * resultantVel.x,
+                            GameOptions.launchImpulse * resultantVel.y
+                        ))
+                        console.table(ball.getLinearVelocity())
                     }
                 })           
             })
