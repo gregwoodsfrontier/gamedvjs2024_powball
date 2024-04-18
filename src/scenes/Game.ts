@@ -6,6 +6,9 @@ import {
     Body,
     Chain,
     RevoluteJoint,
+    Contact,
+    WorldManifold,
+    Vec2Value
 } from 'planck';
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
@@ -27,6 +30,8 @@ export class Game extends Scene
     ground: Body;
     leftFlipper: RevoluteJoint;
     rightFlipper: RevoluteJoint;
+    AKey: Phaser.Input.Keyboard.Key | undefined
+    DKey: Phaser.Input.Keyboard.Key | undefined
 
     contactManagement : any[];
     ballsAdded : number;
@@ -60,6 +65,20 @@ export class Game extends Scene
             25.0 * Math.PI / 180.0
         )
 
+        this.rightFlipper = this.createFlipper(
+            this.world,
+            this.game.config.width as number - 150,
+            675,
+            120,
+            10,
+            -25.0 * Math.PI / 180.0,
+            5.0 * Math.PI / 180.0
+        )
+
+        this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+
+        this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+
         // create three walls
         // this.createWall(this.game.config.width as number / 2, this.game.config.height as number - 10, this.game.config.width as number, 10);
         // this.createWall(10, this.game.config.height as number / 2, 10, this.game.config.height as number);
@@ -67,7 +86,7 @@ export class Game extends Scene
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
-            delay : 300,
+            delay : 900,
             callback : () => {
                 this.createBall(Phaser.Math.Between(30, this.game.config.width as number - 30), 30, 1);
             },
@@ -75,41 +94,41 @@ export class Game extends Scene
         });
 
         // this is the collision listener used to process contacts
-        // this.world.on('pre-solve', (contact : Contact)  => {
+        this.world.on('pre-solve', (contact : Contact)  => {
 
-        //     // get both bodies user data
-        //     const userDataA : any = contact.getFixtureA().getBody().getUserData();
-        //     const userDataB : any = contact.getFixtureB().getBody().getUserData();
+            // get both bodies user data
+            const userDataA : any = contact.getFixtureA().getBody().getUserData();
+            const userDataB : any = contact.getFixtureB().getBody().getUserData();
 
-        //     // get the contact point
-        //     const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
-        //     const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
+            // get the contact point
+            const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
+            const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
 
-        //     // three nested "if" just to improve readability, to check for a collision we need:
-        //     // 1 - both bodies must be balls
-        //     if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
-        //         // both balls must have the same value
-        //         if (userDataA.value == userDataB.value) {
-        //             // balls ids must not be already present in the array of ids 
-        //             if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
+            // three nested "if" just to improve readability, to check for a collision we need:
+            // 1 - both bodies must be balls
+            if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
+                // both balls must have the same value
+                if (userDataA.value == userDataB.value) {
+                    // balls ids must not be already present in the array of ids 
+                    if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
                         
-        //                 // add bodies ids to ids array
-        //                 this.ids.push(userDataA.id)
-        //                 this.ids.push(userDataB.id)
+                        // add bodies ids to ids array
+                        this.ids.push(userDataA.id)
+                        this.ids.push(userDataB.id)
 
-        //                 // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids
-        //                 this.contactManagement.push({
-        //                     body1 : contact.getFixtureA().getBody(),
-        //                     body2 : contact.getFixtureB().getBody(),
-        //                     point : contactPoint,
-        //                     value : userDataA.value + 1,
-        //                     id1 : userDataA.id,
-        //                     id2 : userDataB.id
-        //                 })
-        //             }
-        //         }  
-        //     }
-        // });
+                        // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids
+                        this.contactManagement.push({
+                            body1 : contact.getFixtureA().getBody(),
+                            body2 : contact.getFixtureB().getBody(),
+                            point : contactPoint,
+                            value : userDataA.value + 1,
+                            id1 : userDataA.id,
+                            id2 : userDataB.id
+                        })
+                    }
+                }  
+            }
+        });
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
@@ -125,7 +144,7 @@ export class Game extends Scene
         const jointData = {
             enableMotor: true,
             enableLimit: true,
-            maxMotorTorque: 1000.0,
+            maxMotorTorque: 5000.0,
             motorSpeed: 0.0,
             lowerAngle: lowAngle,
             upperAngle: highAngle
@@ -268,6 +287,21 @@ export class Game extends Scene
             userData.sprite.rotation = bodyAngle;
         }
 
-        this.leftFlipper.setMotorSpeed(20.0)
+        // "A" key is for left flipper input
+        if(this.AKey?.isDown) {
+            this.leftFlipper.setMotorSpeed(-20.0)
+        }
+        else {
+            this.leftFlipper.setMotorSpeed(5.0)
+        }
+
+        // "D" key is for left flipper input
+        if(this.DKey?.isDown) {
+            this.rightFlipper.setMotorSpeed(20.0)
+        }
+        else {
+            this.rightFlipper.setMotorSpeed(-5.0)
+        }
+
     } 
 }
