@@ -265,17 +265,40 @@ export class Game extends Scene
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
 
-        // loop through all contacts
-        this.contactManagement.forEach((contact : any) => {
-           
-            // destroy the balls
-            this.destroyBall(contact.body1, contact.id1);
-            this.destroyBall(contact.body2, contact.id2);
+        // check if any contacts need to be resolved
+        if(this.contactManagement.length > 0) {
 
-            // create a new ball
-            this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);             
-        })
-        this.contactManagement = [];
+            // loop through all contacts
+            this.contactManagement.forEach((contact : any) => {
+
+                // add a time delay for ball destruction
+                this.time.addEvent({
+                    delay: 100,
+                    callback: () => {
+                        // destroy the balls
+                        this.destroyBall(contact.body1, contact.id1);
+                        this.destroyBall(contact.body2, contact.id2);
+                    }
+                })
+
+                // adding a blast impulse to surrounding balls.
+           
+                
+    
+                // add a time delay to create a new ball
+                this.time.addEvent({
+                    delay: 200,
+                    callback: () => {
+                        this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
+                        // need a function to launch the ball upon creation
+                    }
+                })           
+            })
+
+            // clear the contact management array
+            this.contactManagement = [];
+        }
+        
 
         // adjust balls position
         for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
