@@ -206,12 +206,19 @@ export class Game extends Scene
             20
         ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
-        const arc = this.add.arc(
+        // const arc = this.add.arc(
+        //     this.scale.width / 2,
+        //     this.scale.width/2,
+        //     this.scale.width/2 - wallWidth,
+        //     -180,
+        //     0
+        // ).setStrokeStyle(2, 0xff9a00)
+
+        const el = this.add.ellipse(
             this.scale.width / 2,
-            this.scale.width/2,
-            this.scale.width/2 - wallWidth,
-            -180,
-            0
+            this.scale.width * 0.4 + wallWidth,
+            this.scale.width - wallWidth * 2, // 560
+            this.scale.width * 0.8 // 480
         ).setStrokeStyle(2, 0xff9a00)
 
         // add a pad for the ball launch
@@ -225,9 +232,9 @@ export class Game extends Scene
         // add guide wall
         this.add.rectangle(
             this.scale.width - wallWidth * 2.5,
-            this.scale.height - (this.scale.height - wallWidth - arc.radius) / 2,
+            this.scale.height - (this.scale.height - wallWidth - el.height/2) / 2,
             wallWidth,
-            this.scale.height - wallWidth - arc.radius
+            this.scale.height - wallWidth - el.height/2
         ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
         // const lineWidth = 10
