@@ -93,10 +93,11 @@ export class Game extends Scene
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
+        // for left hand side
         this.time.addEvent({
-            delay : 900,
+            delay : 1000,
             callback : () => {
-                this.createBall(Phaser.Math.Between(30, this.game.config.width as number - 30), 30, 1);
+                this.createBall(Phaser.Math.Between(30, this.game.config.width as number / 2 - 30), 30, 1);
             },
             loop : true
         });
@@ -325,7 +326,6 @@ export class Game extends Scene
                             GameOptions.launchImpulse * resultantVel.x,
                             GameOptions.launchImpulse * resultantVel.y
                         ))
-                        console.table(ball.getLinearVelocity())
                     }
                 })           
             })
