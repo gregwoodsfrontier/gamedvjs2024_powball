@@ -66,27 +66,28 @@ export class Game extends Scene
         // create a Box2D world with gravity
         this.world = new World(new Vec2(0, GameOptions.gravity));
 
-        this.ground = this.createBounds()
+        // this.ground = this.createBounds()
+        this.createBounds()
 
-        this.leftFlipper = this.createFlipper(
-            this.world,
-            150,
-            675,
-            120,
-            10,
-            -5.0 * Math.PI / 180.0,
-            25.0 * Math.PI / 180.0
-        )
+        // this.leftFlipper = this.createFlipper(
+        //     this.world,
+        //     150,
+        //     675,
+        //     120,
+        //     10,
+        //     -5.0 * Math.PI / 180.0,
+        //     25.0 * Math.PI / 180.0
+        // )
 
-        this.rightFlipper = this.createFlipper(
-            this.world,
-            this.game.config.width as number - 150,
-            675,
-            120,
-            10,
-            -25.0 * Math.PI / 180.0,
-            5.0 * Math.PI / 180.0
-        )
+        // this.rightFlipper = this.createFlipper(
+        //     this.world,
+        //     this.game.config.width as number - 150,
+        //     675,
+        //     120,
+        //     10,
+        //     -25.0 * Math.PI / 180.0,
+        //     5.0 * Math.PI / 180.0
+        // )
 
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
 
@@ -94,13 +95,13 @@ export class Game extends Scene
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         // for left hand side
-        this.time.addEvent({
-            delay : 1000,
-            callback : () => {
-                this.createBall(Phaser.Math.Between(30, this.game.config.width as number / 2 - 30), 30, 1);
-            },
-            loop : true
-        });
+        // this.time.addEvent({
+        //     delay : 1000,
+        //     callback : () => {
+        //         this.createBall(Phaser.Math.Between(30, this.game.config.width as number / 2 - 30), 30, 1);
+        //     },
+        //     loop : true
+        // });
 
         // this is the collision listener used to process contacts
         this.world.on('pre-solve', (contact : Contact)  => {
@@ -183,44 +184,90 @@ export class Game extends Scene
 
     // method to create the bounds of the pin ball
     createBounds() {
-        const lineWidth = 10
-        const data = [
-            lineWidth/2, lineWidth/2,
-            600-lineWidth/2, lineWidth/2,
-            600-lineWidth/2, 540,
-            300, 800,
-            lineWidth/2, 540
-        ]
+        const wallWidth = 20
+        const rightWall = this.add.rectangle(
+            this.game.config.width as number - wallWidth / 2,
+            (this.game.config.height as number) / 2,
+            wallWidth,
+            this.game.config.height as number
+        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
-        const chainData = []
-        for(let i = 0; i < data.length/2 ; i++ ) {
-            let offset = 0
-            if(i == 3 || i == 5) {
-                offset = -lineWidth/2
-            }
-            chainData.push(
-                Vec2(toMeters(data[i*2]), toMeters(data[i*2+1] + offset))
-            )
-        }
+        const leftWall = this.add.rectangle(
+            wallWidth / 2,
+            0 + (this.game.config.height as number) / 2,
+            wallWidth,
+            this.game.config.height as number
+        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
-        // add planck body here
-        const body = this.world.createBody()
-        body.createFixture({
-            shape: Chain(chainData, true),
-            density: 1,
-            filterGroupIndex: 1
-        })
+        const topWall = this.add.rectangle(
+            this.game.config.width as number / 2,
+            wallWidth / 2,
+            this.game.config.width as number - wallWidth * 2,
+            20
+        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
-        // add a Phaser Shape inside
-        const wall = this.add.polygon(0, 0, data)
-        wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
+        const arc = this.add.arc(
+            this.scale.width / 2,
+            this.scale.width/2,
+            this.scale.width/2 - wallWidth,
+            -180,
+            0
+        ).setStrokeStyle(2, 0xff9a00)
 
-        body.setUserData({
-            sprite: wall,
-            type: bodyType.Wall
-        })
+        // add a pad for the ball launch
+        this.add.rectangle(
+            this.scale.width - wallWidth * 1.5,
+            this.scale.height - wallWidth * 0.5,
+            wallWidth,
+            20
+        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
-        return body
+        // add guide wall
+        this.add.rectangle(
+            this.scale.width - wallWidth * 2.5,
+            this.scale.height - (this.scale.height - wallWidth - arc.radius) / 2,
+            wallWidth,
+            this.scale.height - wallWidth - arc.radius
+        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+
+        // const lineWidth = 10
+        // const data = [
+        //     lineWidth/2, lineWidth/2,
+        //     600-lineWidth/2, lineWidth/2,
+        //     600-lineWidth/2, 540,
+        //     300, 800,
+        //     lineWidth/2, 540
+        // ]
+
+        // const chainData = []
+        // for(let i = 0; i < data.length/2 ; i++ ) {
+        //     let offset = 0
+        //     if(i == 3 || i == 5) {
+        //         offset = -lineWidth/2
+        //     }
+        //     chainData.push(
+        //         Vec2(toMeters(data[i*2]), toMeters(data[i*2+1] + offset))
+        //     )
+        // }
+
+        // // add planck body here
+        // const body = this.world.createBody()
+        // body.createFixture({
+        //     shape: Chain(chainData, true),
+        //     density: 1,
+        //     filterGroupIndex: 1
+        // })
+
+        // // add a Phaser Shape inside
+        // const wall = this.add.polygon(0, 0, data)
+        // wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
+
+        // body.setUserData({
+        //     sprite: wall,
+        //     type: bodyType.Wall
+        // })
+
+        // return body
     }
 
     // method to create a ball
@@ -346,20 +393,26 @@ export class Game extends Scene
         }
 
         // "A" key is for left flipper input
-        if(this.AKey?.isDown) {
-            this.leftFlipper.setMotorSpeed(-20.0)
+        if (this.leftFlipper) {
+            if(this.AKey?.isDown) {
+                this.leftFlipper.setMotorSpeed(-20.0)
+            }
+            else {
+                this.leftFlipper.setMotorSpeed(5.0)
+            }
         }
-        else {
-            this.leftFlipper.setMotorSpeed(5.0)
-        }
+        
 
         // "D" key is for left flipper input
-        if(this.DKey?.isDown) {
-            this.rightFlipper.setMotorSpeed(20.0)
+        if (this.rightFlipper) {
+            if(this.DKey?.isDown) {
+                this.rightFlipper.setMotorSpeed(20.0)
+            }
+            else {
+                this.rightFlipper.setMotorSpeed(-5.0)
+            }
+    
         }
-        else {
-            this.rightFlipper.setMotorSpeed(-5.0)
-        }
-
+        
     } 
 }
