@@ -182,6 +182,22 @@ export class Game extends Scene
         return joint
     }
 
+    createEllipPoints(_x: number, _y:number, width: number, height: number, nPoints: number): {x: number, y: number}[] {
+        const points = [] as {x: number, y: number}[]
+        const startAngle = 0;
+        const endAngle = Math.PI;
+        const delta = endAngle - startAngle;
+
+        for(let i = 0; i < nPoints; i++) {
+            let theta = startAngle + i / nPoints * delta
+            let xCord = width * Math.cos(theta) + _x
+            let yCord = height * Math.sin(theta) + _y
+            points.push({x: xCord, y: yCord})
+        }
+
+        return points
+    }
+
     // method to create the bounds of the pin ball
     createBounds() {
         const wallWidth = 20
