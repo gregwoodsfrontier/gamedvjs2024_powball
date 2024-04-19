@@ -200,58 +200,83 @@ export class Game extends Scene
 
     // method to create the bounds of the pin ball
     createBounds() {
-        const wallWidth = 20
-        const rightWall = this.add.rectangle(
-            this.game.config.width as number - wallWidth / 2,
-            (this.game.config.height as number) / 2,
-            wallWidth,
-            this.game.config.height as number
-        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        const wallWidth = 10
 
-        const leftWall = this.add.rectangle(
-            wallWidth / 2,
-            0 + (this.game.config.height as number) / 2,
-            wallWidth,
-            this.game.config.height as number
-        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        const {width, height} = this.scale;
 
-        const topWall = this.add.rectangle(
-            this.game.config.width as number / 2,
-            wallWidth / 2,
-            this.game.config.width as number - wallWidth * 2,
-            20
-        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        const topWall = this.add.polygon(
+            0,
+            0,
+            [
+                wallWidth, wallWidth, 
+                width - wallWidth, wallWidth
+            ]
+        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
 
-        // const arc = this.add.arc(
-        //     this.scale.width / 2,
-        //     this.scale.width/2,
-        //     this.scale.width/2 - wallWidth,
-        //     -180,
-        //     0
-        // ).setStrokeStyle(2, 0xff9a00)
+        const leftWall = this.add.polygon(
+            0,
+            0,
+            [
+                wallWidth, wallWidth, 
+                wallWidth, height * 0.75
+            ]
+        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
 
-        const el = this.add.ellipse(
-            this.scale.width / 2,
-            this.scale.width * 0.4 + wallWidth,
-            this.scale.width - wallWidth * 2, // 560
-            this.scale.width * 0.8 // 480
-        ).setStrokeStyle(2, 0xff9a00)
+        const rightWall = this.add.polygon(
+            0,
+            0,
+            [
+                width - wallWidth, wallWidth, 
+                width - wallWidth, height * 0.75,
+            ]
+        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
 
-        // add a pad for the ball launch
+        const leftSlope = this.add.polygon(0,
+            0,
+            [
+                wallWidth, height * 0.75,
+                wallWidth + width*0.2, height * 0.75 + 25
+            ]
+        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+
+        const rightSlope = this.add.polygon(
+            0,
+            0,
+            [
+                width - wallWidth, height * 0.75, 
+                width - wallWidth - width*0.2, height * 0.75  + 25,
+            ]
+        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+
+        //define spawn area
         this.add.rectangle(
-            this.scale.width - wallWidth * 1.5,
-            this.scale.height - wallWidth * 0.5,
-            wallWidth,
-            20
-        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+            width / 2,
+            height * 0.05,
+            width - 160,
+            20,
+            0xffde00
+        )
 
-        // add guide wall
-        this.add.rectangle(
-            this.scale.width - wallWidth * 2.5,
-            this.scale.height - (this.scale.height - wallWidth - el.height/2) / 2,
-            wallWidth,
-            this.scale.height - wallWidth - el.height/2
-        ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        // const rightWall = this.add.rectangle(
+        //     this.game.config.width as number - wallWidth / 2,
+        //     (this.game.config.height as number) / 2,
+        //     wallWidth,
+        //     this.game.config.height as number
+        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+
+        // const leftWall = this.add.rectangle(
+        //     wallWidth / 2,
+        //     0 + (this.game.config.height as number) / 2,
+        //     wallWidth,
+        //     this.game.config.height as number
+        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+
+        // const topWall = this.add.rectangle(
+        //     this.game.config.width as number / 2,
+        //     wallWidth / 2,
+        //     this.game.config.width as number - wallWidth * 2,
+        //     20
+        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
 
         // const lineWidth = 10
         // const data = [
