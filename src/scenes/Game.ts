@@ -40,15 +40,19 @@ export class Game extends Scene
     }
 
     world : World;
-    ground: Body;
+    wall: Body;
+    despawnGround: Body;
     leftFlipper: RevoluteJoint;
     rightFlipper: RevoluteJoint;
+
     AKey: Phaser.Input.Keyboard.Key | undefined
     DKey: Phaser.Input.Keyboard.Key | undefined
 
     contactManagement : any[];
     ballsAdded : number;
     ids : number[];
+    score: number;
+    scoreText: Phaser.GameObjects.Text;
 
     preload ()
     {
@@ -57,6 +61,7 @@ export class Game extends Scene
 
     // method to be called once the instance has been created
     create() : void {
+        const {width, height} = this.scale
 
         // initialize global variables
         this.ids = [];
@@ -94,14 +99,13 @@ export class Game extends Scene
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
-        // for left hand side
-        // this.time.addEvent({
-        //     delay : 1000,
-        //     callback : () => {
-        //         this.createBall(Phaser.Math.Between(30, this.game.config.width as number / 2 - 30), 30, 1);
-        //     },
-        //     loop : true
-        // });
+        this.time.addEvent({
+            delay : 1000,
+            callback : () => {
+                this.createBall(Phaser.Math.Between(100, width - 100), height * 0.05, 1);
+            },
+            loop : true
+        });
 
         // this is the collision listener used to process contacts
         this.world.on('pre-solve', (contact : Contact)  => {
@@ -144,7 +148,7 @@ export class Game extends Scene
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
-    createFlipper(_world: World, posX: number, posY: number, width: number, height: number, lowAngle: number, highAngle: number) {
+    createFlipper(_world: World, _wall: Body, posX: number, posY: number, width: number, height: number, lowAngle: number, highAngle: number) {
         const rect = this.add.rectangle(
             posX,
             posY,
@@ -176,23 +180,24 @@ export class Game extends Scene
             type: bodyType.Flipper
         })
 
-        const joint = RevoluteJoint(jointData, this.ground, flipper, flipper.getPosition())
+        const joint = RevoluteJoint(jointData, _wall, flipper, flipper.getPosition())
         _world.createJoint(joint)
 
         return joint
     }
 
-    createEllipPoints(_x: number, _y:number, width: number, height: number, nPoints: number): {x: number, y: number}[] {
-        const points = [] as {x: number, y: number}[]
-        const startAngle = 0;
-        const endAngle = Math.PI;
+    createEllipPoints(_x: number, _y:number, width: number, height: number, nPoints: number): number[] {
+        const points = [] as number[]
+        const startAngle = -Math.PI;
+        const endAngle = 0;
         const delta = endAngle - startAngle;
 
-        for(let i = 0; i < nPoints; i++) {
+        for(let i = 0; i <= nPoints; i++) {
             let theta = startAngle + i / nPoints * delta
             let xCord = width * Math.cos(theta) + _x
             let yCord = height * Math.sin(theta) + _y
-            points.push({x: xCord, y: yCord})
+            points.push(xCord)
+            points.push(yCord)
         }
 
         return points
@@ -201,121 +206,107 @@ export class Game extends Scene
     // method to create the bounds of the pin ball
     createBounds() {
         const wallWidth = 10
-
+        
         const {width, height} = this.scale;
 
-        const topWall = this.add.polygon(
-            0,
-            0,
-            [
-                wallWidth, wallWidth, 
-                width - wallWidth, wallWidth
-            ]
-        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+        const slopeW = width * 0.2
+        const slopeH = 25
 
-        const leftWall = this.add.polygon(
-            0,
-            0,
-            [
-                wallWidth, wallWidth, 
-                wallWidth, height * 0.75
-            ]
-        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+        const ellipPoints = this.createEllipPoints(
+            width * 0.5,
+            height * 0.25,
+            220,
+            100,
+            21
+        )
+        console.log(ellipPoints)
 
-        const rightWall = this.add.polygon(
-            0,
-            0,
-            [
-                width - wallWidth, wallWidth, 
-                width - wallWidth, height * 0.75,
-            ]
-        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+        const wallPts = [
+            wallWidth + slopeW, height,
+            wallWidth + slopeW, height * 0.75 + slopeH,
+            wallWidth, height * 0.75,
+            wallWidth, wallWidth,
+            width - wallWidth, wallWidth,
+            width - wallWidth, height * 0.75,
+            width - wallWidth, height * 0.75, 
+            width - wallWidth - slopeW, height * 0.75  + slopeH,
+            width - wallWidth - slopeW, height,
+        ]
 
-        const leftSlope = this.add.polygon(0,
+        // for the ellipse slope
+        const renderEllip = this.add.polygon(
             0,
-            [
-                wallWidth, height * 0.75,
-                wallWidth + width*0.2, height * 0.75 + 25
-            ]
-        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+            0,
+            ellipPoints
+        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
 
-        const rightSlope = this.add.polygon(
+        // for the bounding walls
+        const renderWall = this.add.polygon(
+            0,
+            0,
+            wallPts
+        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
+
+        // despawn ground
+        const dg = this.add.polygon( 
             0,
             0,
             [
-                width - wallWidth, height * 0.75, 
-                width - wallWidth - width*0.2, height * 0.75  + 25,
+                wallWidth + slopeW, height - wallWidth,
+                width - wallWidth - slopeW, height - wallWidth
             ]
-        ).setStrokeStyle(5, 0xff9a00).setOrigin(0,0)
+        ).setStrokeStyle(5, 0x00ecff).setOrigin(0,0).setClosePath(false)
 
         //define spawn area
         this.add.rectangle(
             width / 2,
             height * 0.05,
-            width - 160,
+            width - 100*2,
             20,
             0xffde00
         )
 
-        // const rightWall = this.add.rectangle(
-        //     this.game.config.width as number - wallWidth / 2,
-        //     (this.game.config.height as number) / 2,
-        //     wallWidth,
-        //     this.game.config.height as number
-        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        // creating planck body for wall
+        this.createChainFixture(
+            this.world,
+            wallPts,
+            1,
+            1,
+            renderWall,
+            bodyType.Wall
+        )
 
-        // const leftWall = this.add.rectangle(
-        //     wallWidth / 2,
-        //     0 + (this.game.config.height as number) / 2,
-        //     wallWidth,
-        //     this.game.config.height as number
-        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        // creating body for ellip slope
+        const eBody = this.createChainFixture(
+            this.world,
+            ellipPoints,
+            1,
+            1,
+            renderEllip,
+            bodyType.Wall
+        )
 
-        // const topWall = this.add.rectangle(
-        //     this.game.config.width as number / 2,
-        //     wallWidth / 2,
-        //     this.game.config.width as number - wallWidth * 2,
-        //     20
-        // ).setStrokeStyle(2, 0xff9a00).setFillStyle(0xff9a00)
+        // console.info(eBody.getShape())
 
-        // const lineWidth = 10
-        // const data = [
-        //     lineWidth/2, lineWidth/2,
-        //     600-lineWidth/2, lineWidth/2,
-        //     600-lineWidth/2, 540,
-        //     300, 800,
-        //     lineWidth/2, 540
-        // ]
+    }
 
-        // const chainData = []
-        // for(let i = 0; i < data.length/2 ; i++ ) {
-        //     let offset = 0
-        //     if(i == 3 || i == 5) {
-        //         offset = -lineWidth/2
-        //     }
-        //     chainData.push(
-        //         Vec2(toMeters(data[i*2]), toMeters(data[i*2+1] + offset))
-        //     )
-        // }
+    createChainFixture(_world: World, _points: number[], _density: number, _filterGpIdx: number, _sprite: Phaser.GameObjects.Polygon, _type: number) {
+        const worldPoints = []
+        for(let i = 0; i < _points.length / 2; i++) {
+            worldPoints.push(Vec2(toMeters(_points[i*2] as number), toMeters(_points[i*2+1] as number)))
+        }
+        const body = _world.createBody()
+        body.createFixture({
+            shape: Chain(worldPoints, false),
+            density: _density,
+            filterGroupIndex: _filterGpIdx
+        })
+        body.setUserData({
+            sprite: _sprite,
+            type: _type
+        })
 
-        // // add planck body here
-        // const body = this.world.createBody()
-        // body.createFixture({
-        //     shape: Chain(chainData, true),
-        //     density: 1,
-        //     filterGroupIndex: 1
-        // })
-
-        // // add a Phaser Shape inside
-        // const wall = this.add.polygon(0, 0, data)
-        // wall.setStrokeStyle(lineWidth, 0xff9a00).setOrigin(0, 0)
-
-        // body.setUserData({
-        //     sprite: wall,
-        //     type: bodyType.Wall
-        // })
-
-        // return body
+        return body
     }
 
     // method to create a ball
@@ -435,9 +426,12 @@ export class Game extends Scene
             const bodyPosition : Vec2 = body.getPosition();
             const bodyAngle : number = body.getAngle();
             const userData : any = body.getUserData();
-            userData.sprite.x = toPixels(bodyPosition.x);
-            userData.sprite.y = toPixels(bodyPosition.y);
-            userData.sprite.rotation = bodyAngle;
+            if(userData) {
+                userData.sprite.x = toPixels(bodyPosition.x);
+                userData.sprite.y = toPixels(bodyPosition.y);
+                userData.sprite.rotation = bodyAngle;
+            }
+            
         }
 
         // "A" key is for left flipper input
