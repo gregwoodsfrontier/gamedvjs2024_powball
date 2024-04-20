@@ -77,40 +77,77 @@ export class Game extends Scene
         // create a Box2D world with gravity
         this.world = new World(new Vec2(0, GameOptions.gravity));
 
-        // this.ground = this.createBounds()
         this.wall = this.createBounds()
-        this.bump = this.createEllipBump()
+        this.bump = this.createPyramidBump()
         this.void = this.createVoidBody()
 
-        const pt = (this.wall.getUserData() as any).sprite
-        if(pt){
-            console.log(pt.pathData[2], pt.pathData[3])
-            this.add.circle(pt.pathData[2], pt.pathData[3], 10, 0xffffff)
+        // testing code
+
+        const { pathData } = (this.wall.getUserData() as any).sprite
+        
+        if(pathData){
+
+            const anchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
+            
+            // create point for indication
+            this.add.circle(anchorPt.x, anchorPt.y, 10, 0xffffff)
+
+            // create right flipper sprite
+            const rectSprite = this.add.rectangle(
+                0, 0,
+                60*2, 10*2,
+                0xff0000
+            )
+
+            // create right flipper physics body
+            const rightFlipBody = this.world.createDynamicBody({
+                position: Vec2(toMeters(anchorPt.x - 60), toMeters(anchorPt.y + 10))
+            })
+            rightFlipBody.createFixture({
+                shape: Box(
+                    toMeters(60),
+                    toMeters(10)
+                ),
+                density: 1
+            })
+            rightFlipBody.setUserData({
+                sprite: rectSprite,
+                type: bodyType.Flipper
+            })
+
+            // define the motor data
+            const rightJointData = {
+                enableMotor: true,
+                enableLimit: true,
+                maxMotorTorque: 5000.0,
+                motorSpeed: 0.0,
+                lowerAngle: -slopeAngle,
+                upperAngle: 5.0 * Math.PI / 180.0
+            }
+
+            // create joint
+            this.rightFlipper = RevoluteJoint(
+                rightJointData,
+                this.wall,
+                rightFlipBody,
+                Vec2(toMeters(anchorPt.x), toMeters(anchorPt.y))
+            )
+
+            this.world.createJoint(this.rightFlipper)
+            // end of test code
+
 
             this.leftFlipper = this.createFlipper(
                 this.world,
                 this.wall,
-                pt.pathData[2],
-                pt.pathData[3],
+                pathData[2],
+                pathData[3],
                 120,
                 10,
                 -5.0 * Math.PI / 180.0,
                 slopeAngle
             )
-
         }
-
-        
-
-        // this.rightFlipper = this.createFlipper(
-        //     this.world,
-        //     this.game.config.width as number - 150,
-        //     675,
-        //     120,
-        //     10,
-        //     -25.0 * Math.PI / 180.0,
-        //     5.0 * Math.PI / 180.0
-        // )
 
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
 
@@ -118,7 +155,7 @@ export class Game extends Scene
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
-            delay : 800,
+            delay : 1800,
             callback : () => {
                 if(Phaser.Math.Between(0,1) < 0.5) {
                     this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
@@ -209,53 +246,30 @@ export class Game extends Scene
         return joint
     }
 
-    createEllipPoints(_x: number, _y:number, width: number, height: number, nPoints: number): number[] {
-        const points = [] as number[]
-        const startAngle = -Math.PI;
-        const endAngle = 0;
-        const delta = endAngle - startAngle;
-
-        for(let i = 0; i <= nPoints; i++) {
-            let theta = startAngle + i / nPoints * delta
-            let xCord = width * Math.cos(theta) + _x
-            let yCord = height * Math.sin(theta) + _y
-            points.push(xCord)
-            points.push(yCord)
-        }
-
-        return points
-    }
-
-    createEllipBump() {
+    createPyramidBump() {
         const {width, height} = this.scale;
+        const points = [
+            width*0.5 - 220 , height*0.3,
+            width*0.5       , height*0.3 - 150,
+            width*0.5 + 220 , height*0.3
+        ]
 
-        const ellipPoints = this.createEllipPoints(
-            width * 0.5,
-            height * 0.30,
-            220,
-            150,
-            23
-        )
-
-        // for the ellipse slope
-        const renderEllip = this.add.polygon(
+        const shape = this.add.polygon(
             0,
             0,
-            ellipPoints
+            points
         ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
 
-        
-        // creating body for ellip slope
-        const eBody = this.createChainFixture(
+        const body = this.createChainFixture(
             this.world,
-            ellipPoints,
+            points,
             1,
             1,
-            renderEllip,
+            shape,
             bodyType.Wall
         )
 
-        return eBody
+        return body
     }
 
     createVoidBody() {
