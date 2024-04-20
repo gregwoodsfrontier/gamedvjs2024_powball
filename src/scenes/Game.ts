@@ -19,7 +19,9 @@ import { toMeters, toPixels } from '../plankUtils';
 enum bodyType {
     Ball,
     Wall,
-    Flipper
+    Flipper,
+    Void,
+    Player
 }
 
 type ContactManagementDataType = {
@@ -41,7 +43,8 @@ export class Game extends Scene
 
     world : World;
     wall: Body;
-    despawnGround: Body;
+    bump: Body;
+    void: Body;
     leftFlipper: RevoluteJoint;
     rightFlipper: RevoluteJoint;
 
@@ -62,6 +65,9 @@ export class Game extends Scene
     // method to be called once the instance has been created
     create() : void {
         const {width, height} = this.scale
+        const slopeW = width * 0.2
+        const slopeH = 25
+        const slopeAngle = Math.atan(slopeH/slopeW)
 
         // initialize global variables
         this.ids = [];
@@ -72,17 +78,29 @@ export class Game extends Scene
         this.world = new World(new Vec2(0, GameOptions.gravity));
 
         // this.ground = this.createBounds()
-        this.createBounds()
+        this.wall = this.createBounds()
+        this.bump = this.createEllipBump()
+        this.void = this.createVoidBody()
 
-        // this.leftFlipper = this.createFlipper(
-        //     this.world,
-        //     150,
-        //     675,
-        //     120,
-        //     10,
-        //     -5.0 * Math.PI / 180.0,
-        //     25.0 * Math.PI / 180.0
-        // )
+        const pt = (this.wall.getUserData() as any).sprite
+        if(pt){
+            console.log(pt.pathData[2], pt.pathData[3])
+            this.add.circle(pt.pathData[2], pt.pathData[3], 10, 0xffffff)
+
+            this.leftFlipper = this.createFlipper(
+                this.world,
+                this.wall,
+                pt.pathData[2],
+                pt.pathData[3],
+                120,
+                10,
+                -5.0 * Math.PI / 180.0,
+                slopeAngle
+            )
+
+        }
+
+        
 
         // this.rightFlipper = this.createFlipper(
         //     this.world,
@@ -100,9 +118,14 @@ export class Game extends Scene
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
-            delay : 1000,
+            delay : 800,
             callback : () => {
-                this.createBall(Phaser.Math.Between(100, width - 100), height * 0.05, 1);
+                if(Phaser.Math.Between(0,1) < 0.5) {
+                    this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
+                }
+                else {
+                    this.createBall(Phaser.Math.Between(width/2 + 20, width - 100), height * 0.05, 1);
+                }
             },
             loop : true
         });
@@ -203,6 +226,65 @@ export class Game extends Scene
         return points
     }
 
+    createEllipBump() {
+        const {width, height} = this.scale;
+
+        const ellipPoints = this.createEllipPoints(
+            width * 0.5,
+            height * 0.30,
+            220,
+            150,
+            23
+        )
+
+        // for the ellipse slope
+        const renderEllip = this.add.polygon(
+            0,
+            0,
+            ellipPoints
+        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
+
+        
+        // creating body for ellip slope
+        const eBody = this.createChainFixture(
+            this.world,
+            ellipPoints,
+            1,
+            1,
+            renderEllip,
+            bodyType.Wall
+        )
+
+        return eBody
+    }
+
+    createVoidBody() {
+        const wallWidth = 10
+        const {width, height} = this.scale;
+        const slopeW = width * 0.2
+        
+        // despawn ground
+        const dg = this.add.polygon( 
+            0,
+            0,
+            [
+                wallWidth + slopeW, height - wallWidth,
+                width - wallWidth - slopeW, height - wallWidth
+            ]
+        ).setStrokeStyle(5, 0x00ecff).setOrigin(0,0).setClosePath(false)
+
+        const body = this.createChainFixture(
+            this.world,
+            dg.pathData,
+            1,
+            1,
+            dg,
+            bodyType.Void
+        )
+
+        return body
+    }
+
     // method to create the bounds of the pin ball
     createBounds() {
         const wallWidth = 10
@@ -211,16 +293,7 @@ export class Game extends Scene
 
         const slopeW = width * 0.2
         const slopeH = 25
-
-        const ellipPoints = this.createEllipPoints(
-            width * 0.5,
-            height * 0.25,
-            220,
-            100,
-            21
-        )
-        console.log(ellipPoints)
-
+        
         const wallPts = [
             wallWidth + slopeW, height,
             wallWidth + slopeW, height * 0.75 + slopeH,
@@ -233,13 +306,6 @@ export class Game extends Scene
             width - wallWidth - slopeW, height,
         ]
 
-        // for the ellipse slope
-        const renderEllip = this.add.polygon(
-            0,
-            0,
-            ellipPoints
-        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
-
         // for the bounding walls
         const renderWall = this.add.polygon(
             0,
@@ -247,27 +313,8 @@ export class Game extends Scene
             wallPts
         ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
 
-        // despawn ground
-        const dg = this.add.polygon( 
-            0,
-            0,
-            [
-                wallWidth + slopeW, height - wallWidth,
-                width - wallWidth - slopeW, height - wallWidth
-            ]
-        ).setStrokeStyle(5, 0x00ecff).setOrigin(0,0).setClosePath(false)
-
-        //define spawn area
-        this.add.rectangle(
-            width / 2,
-            height * 0.05,
-            width - 100*2,
-            20,
-            0xffde00
-        )
-
         // creating planck body for wall
-        this.createChainFixture(
+        const body = this.createChainFixture(
             this.world,
             wallPts,
             1,
@@ -276,18 +323,7 @@ export class Game extends Scene
             bodyType.Wall
         )
 
-        // creating body for ellip slope
-        const eBody = this.createChainFixture(
-            this.world,
-            ellipPoints,
-            1,
-            1,
-            renderEllip,
-            bodyType.Wall
-        )
-
-        // console.info(eBody.getShape())
-
+        return body
     }
 
     createChainFixture(_world: World, _points: number[], _density: number, _filterGpIdx: number, _sprite: Phaser.GameObjects.Polygon, _type: number) {

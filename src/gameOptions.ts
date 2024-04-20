@@ -4,7 +4,7 @@
 export const GameOptions : any = {
     
     // world gravity
-    gravity : 4,
+    gravity : 8,
 
     // pixels / meters ratio
     worldScale : 30,
