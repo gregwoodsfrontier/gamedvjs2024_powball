@@ -76,13 +76,22 @@ export class Game extends Scene
         this.ballsAdded = 0;
         this.contactManagement = [];
         this.contactMangementWithVoid = [];
+        this.score = 0;
+        this.scoreText = this.add.text(
+            width - 30,
+            30,
+            `${this.score}`,
+            {
+                fontSize: '48px'
+            }
+        ).setOrigin(1, 0)
 
         // create a Box2D world with gravity
         this.world = World(Vec2(0, GameOptions.gravity));
 
         this.wall = this.createBounds()
         this.bump = this.createPyramidBump()
-        this.void = this.createVoidBody( width * 0.225 )
+        this.void = this.createVoidBody( width * 0.20 )
 
         const { pathData } = (this.wall.getUserData() as any).sprite
 
@@ -251,9 +260,9 @@ export class Game extends Scene
     createPyramidBump() {
         const {width, height} = this.scale;
         const points = [
-            width*0.5 - 220 , height*0.3,
+            width*0.5 - 200 , height*0.3,
             width*0.5       , height*0.3 - 150,
-            width*0.5 + 220 , height*0.3
+            width*0.5 + 200 , height*0.3
         ]
 
         const shape = this.add.polygon(
@@ -306,7 +315,7 @@ export class Game extends Scene
         
         const {width, height} = this.scale;
 
-        const slopeW = width * 0.225
+        const slopeW = width * 0.20
         const slopeH = 25 + 10
         
         const wallPts = [
@@ -365,13 +374,15 @@ export class Game extends Scene
         const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
         circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
         const ball : Body = this.world.createDynamicBody({
-            position : new Vec2(toMeters(posX), toMeters(posY))
+            position : new Vec2(toMeters(posX), toMeters(posY)),
+            type: 'dynamic',
+            bullet: true
         });
         ball.createFixture({
             shape : new Circle(toMeters(value * 10)),
             density : 1,
             friction : 0.3,
-            restitution : 0.1
+            restitution : 0.3
         });
         ball.setUserData({
             sprite : circle,
@@ -427,13 +438,14 @@ export class Game extends Scene
                         // destroy the balls
                         this.destroyBall(contact.body1, contact.id1);
                         this.destroyBall(contact.body2, contact.id2);
+                        this.score += (contact.value * 10)
                     }
                 })
 
                 // adding a blast impulse to surrounding balls.
                 const query: AABB = new AABB(
-                    new Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
-                    new Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
+                    Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
+                    Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
                 )
 
                 // query the world for fixtures inside the square, aka "radius"
@@ -520,6 +532,9 @@ export class Game extends Scene
             }
     
         }
+
+        // update score text every update frame
+        this.scoreText.setText(`${this.score}`)
         
     } 
 }
