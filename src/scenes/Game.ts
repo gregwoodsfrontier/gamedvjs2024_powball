@@ -52,6 +52,8 @@ export class Game extends Scene
     DKey: Phaser.Input.Keyboard.Key | undefined
 
     contactManagement : any[];
+    contactMangementWithVoid: any[];
+
     ballsAdded : number;
     ids : number[];
     score: number;
@@ -73,79 +75,49 @@ export class Game extends Scene
         this.ids = [];
         this.ballsAdded = 0;
         this.contactManagement = [];
+        this.contactMangementWithVoid = [];
 
         // create a Box2D world with gravity
-        this.world = new World(new Vec2(0, GameOptions.gravity));
+        this.world = World(Vec2(0, GameOptions.gravity));
 
         this.wall = this.createBounds()
         this.bump = this.createPyramidBump()
-        this.void = this.createVoidBody()
-
-        // testing code
+        this.void = this.createVoidBody( width * 0.225 )
 
         const { pathData } = (this.wall.getUserData() as any).sprite
-        
+
         if(pathData){
 
-            const anchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
-            
+            const LAnchorPt = {x: pathData[2], y: pathData[3]}
+            const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
+
             // create point for indication
-            this.add.circle(anchorPt.x, anchorPt.y, 10, 0xffffff)
+            this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
+            this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
 
-            // create right flipper sprite
-            const rectSprite = this.add.rectangle(
-                0, 0,
-                60*2, 10*2,
-                0xff0000
-            )
-
-            // create right flipper physics body
-            const rightFlipBody = this.world.createDynamicBody({
-                position: Vec2(toMeters(anchorPt.x - 60), toMeters(anchorPt.y + 10))
-            })
-            rightFlipBody.createFixture({
-                shape: Box(
-                    toMeters(60),
-                    toMeters(10)
-                ),
-                density: 1
-            })
-            rightFlipBody.setUserData({
-                sprite: rectSprite,
-                type: bodyType.Flipper
-            })
-
-            // define the motor data
-            const rightJointData = {
-                enableMotor: true,
-                enableLimit: true,
-                maxMotorTorque: 5000.0,
-                motorSpeed: 0.0,
-                lowerAngle: -slopeAngle,
-                upperAngle: 5.0 * Math.PI / 180.0
-            }
-
-            // create joint
-            this.rightFlipper = RevoluteJoint(
-                rightJointData,
-                this.wall,
-                rightFlipBody,
-                Vec2(toMeters(anchorPt.x), toMeters(anchorPt.y))
-            )
-
-            this.world.createJoint(this.rightFlipper)
-            // end of test code
-
-
+            // create the flippers
             this.leftFlipper = this.createFlipper(
+                true,
                 this.world,
                 this.wall,
                 pathData[2],
                 pathData[3],
-                120,
+                60,
                 10,
-                -5.0 * Math.PI / 180.0,
+                -10.0 * Math.PI / 180.0,
                 slopeAngle
+            )
+
+            this.rightFlipper = this.createFlipper(
+                false,
+                this.world,
+                this.wall,
+                RAnchorPt.x,
+                RAnchorPt.y,
+                60,
+                10,
+                -slopeAngle,
+                10.0 * Math.PI / 180.0
             )
         }
 
@@ -204,17 +176,43 @@ export class Game extends Scene
                     }
                 }  
             }
+
+            // make a condition that calls function to destroy balls in void
+            if (userDataA.type == bodyType.Void && userDataB.type == bodyType.Ball) {
+                if (this.ids.indexOf(userDataB.id) == -1) {
+                    this.ids.push(userDataB.id)
+                    this.contactMangementWithVoid.push({
+                        ball: contact.getFixtureB().getBody(),
+                        id: userDataB.id
+                    })
+                    // this.events.emit('destroy-in-void', contact.getFixtureB().getBody(), userDataB.id)
+                }
+            }
+            else if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Void) {
+                if (this.ids.indexOf(userDataA.id) == -1) {
+                    this.ids.push(userDataA.id)
+                    this.contactMangementWithVoid.push({
+                        ball: contact.getFixtureA().getBody(),
+                        id: userDataA.id
+                    })
+                }
+            }
         });
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
-    createFlipper(_world: World, _wall: Body, posX: number, posY: number, width: number, height: number, lowAngle: number, highAngle: number) {
+    createFlipper(
+        isLeft: boolean, _world: World, _wall: Body, 
+        anchorX: number, anchorY: number, 
+        widthInPx: number, heightInPx: number, 
+        lowAngle: number, highAngle: number
+    ) {
         const rect = this.add.rectangle(
-            posX,
-            posY,
-            width*2,
-            height*2,
-            0xff0000
+            0,
+            0,
+            widthInPx * 2,
+            heightInPx * 2,
+            0x00ecff
         )
         
         const jointData = {
@@ -226,12 +224,14 @@ export class Game extends Scene
             upperAngle: highAngle
         }
 
+        let deltaXInPx = isLeft ? widthInPx : -widthInPx
+
         const flipper = _world.createDynamicBody({
-            position : new Vec2(toMeters(posX), toMeters(posY))
+            position : Vec2(toMeters(anchorX + deltaXInPx), toMeters(anchorY + heightInPx))
         })
 
         flipper.createFixture({
-            shape: new Box(toMeters(width), toMeters(height), undefined, 0),
+            shape: Box(toMeters(widthInPx), toMeters(heightInPx)),
             density: 1
         })
 
@@ -240,7 +240,9 @@ export class Game extends Scene
             type: bodyType.Flipper
         })
 
-        const joint = RevoluteJoint(jointData, _wall, flipper, flipper.getPosition())
+        const joint = RevoluteJoint(jointData, _wall, flipper, Vec2(
+            toMeters(anchorX), toMeters(anchorY)
+        ))
         _world.createJoint(joint)
 
         return joint
@@ -272,20 +274,19 @@ export class Game extends Scene
         return body
     }
 
-    createVoidBody() {
+    createVoidBody(_slopeW: number) {
         const wallWidth = 10
         const {width, height} = this.scale;
-        const slopeW = width * 0.2
         
         // despawn ground
         const dg = this.add.polygon( 
             0,
             0,
             [
-                wallWidth + slopeW, height - wallWidth,
-                width - wallWidth - slopeW, height - wallWidth
+                wallWidth + _slopeW, height - wallWidth,
+                width - wallWidth - _slopeW, height - wallWidth
             ]
-        ).setStrokeStyle(5, 0x00ecff).setOrigin(0,0).setClosePath(false)
+        ).setStrokeStyle(5, 0x0ff00ff).setOrigin(0,0).setClosePath(false)
 
         const body = this.createChainFixture(
             this.world,
@@ -305,8 +306,8 @@ export class Game extends Scene
         
         const {width, height} = this.scale;
 
-        const slopeW = width * 0.2
-        const slopeH = 25
+        const slopeW = width * 0.225
+        const slopeH = 25 + 10
         
         const wallPts = [
             wallWidth + slopeW, height,
@@ -405,7 +406,7 @@ export class Game extends Scene
         userData.sprite.destroy();
         this.world.destroyBody(ball); 
         this.ids.splice(this.ids.indexOf(id), 1);    
-    } 
+    }
 
     // method to be executed at each frame
     update(totalTime : number, deltaTime : number) : void {  
@@ -470,6 +471,21 @@ export class Game extends Scene
             this.contactManagement = [];
         }
         
+        if(this.contactMangementWithVoid.length > 0) {
+
+            this.contactMangementWithVoid.forEach((contact: any) => {
+                // add a time delay for ball destruction
+                this.time.addEvent({
+                    delay: 50,
+                    callback: () => {
+                        // destroy the balls
+                        this.destroyBall(contact.ball, contact.id)
+                    }
+                })
+            })
+            // clear the management array
+            this.contactMangementWithVoid = []
+        }
 
         // adjust balls position
         for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
@@ -494,7 +510,6 @@ export class Game extends Scene
             }
         }
         
-
         // "D" key is for left flipper input
         if (this.rightFlipper) {
             if(this.DKey?.isDown) {
