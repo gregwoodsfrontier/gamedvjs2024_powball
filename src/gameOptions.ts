@@ -3,7 +3,7 @@
  
 export const GameOptions = {
     // time allowed for 1 round
-    maxTime: 20,
+    maxTime: import.meta.env.DEV ? 21 : 61,
 
     // max number of balls allowed to fall to void
     maxBalls: 10,

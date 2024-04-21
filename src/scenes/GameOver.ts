@@ -5,17 +5,21 @@ export class GameOver extends Scene {
         super('gameOver')
     }
 
-    gameOverText: Phaser.GameObjects.Text
-
-    create() {
+    create(data: any) {
         const { width, height } = this.scale
-
-        this.gameOverText = this.add.text(width/2, height/2, 'GameOver', {
+        
+        // gameover text
+        this.add.text(width/2, height/2, 'GameOver', {
             fontSize: '48px'
-        })
+        }).setOrigin(0.5, 0.5)
+
+        // score text
+        this.add.text(width/2, height*0.6, `Score: ${data.score}`, {
+            fontSize: '48px'
+        }).setOrigin(0.5, 0.5)
 
         this.time.addEvent({
-            delay: 1000,
+            delay: 3000,
             callback: () => {
                 this.scene.start('Game')
             }

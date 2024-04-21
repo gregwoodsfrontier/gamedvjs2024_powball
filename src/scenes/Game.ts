@@ -578,7 +578,9 @@ export class Game extends Scene
                         if(this.world.getBodyCount() === 0 ){
                             gameOverTimer.remove();
 
-                            this.scene.start("gameOver")
+                            this.scene.start("gameOver", {
+                                score: this.score
+                            })
                         }
 
                         let body: Body = this.world.getBodyList() as Body

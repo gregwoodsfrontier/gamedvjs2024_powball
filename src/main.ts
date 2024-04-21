@@ -17,7 +17,7 @@ const config: Types.Core.GameConfig = {
     },
     scene: [
         MainGame,
-        GameOver
+        GameOver,
     ]
 };
 
