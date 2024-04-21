@@ -2,6 +2,11 @@
 // changing these values will affect gameplay
  
 export const GameOptions : any = {
+    // time allowed for 1 round
+    maxTime: 60,
+
+    // max number of balls allowed to fall to void
+    maxBalls: 10,
     
     // world gravity
     gravity : 8,

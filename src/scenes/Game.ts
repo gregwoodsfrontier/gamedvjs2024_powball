@@ -66,6 +66,7 @@ export class Game extends Scene
 
     // method to be called once the instance has been created
     create() : void {
+        // layout params
         const {width, height} = this.scale
         const slopeW = width * 0.2
         const slopeH = 25
@@ -76,6 +77,7 @@ export class Game extends Scene
         this.ballsAdded = 0;
         this.contactManagement = [];
         this.contactMangementWithVoid = [];
+
         this.score = 0;
         this.scoreText = this.add.text(
             width - 30,
@@ -530,7 +532,6 @@ export class Game extends Scene
             else {
                 this.rightFlipper.setMotorSpeed(-5.0)
             }
-    
         }
 
         // update score text every update frame
