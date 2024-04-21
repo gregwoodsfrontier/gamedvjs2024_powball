@@ -15,6 +15,7 @@ import {
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
 import { toMeters, toPixels } from '../plankUtils';
+import { Emitters } from '../effects/Emitters';
 
 enum bodyType {
     Ball,
@@ -64,6 +65,8 @@ export class Game extends Scene
 
     isGameOver: boolean = false
 
+    emittersClass: Emitters
+
     preload ()
     {
         this.load.setPath('assets');
@@ -84,6 +87,9 @@ export class Game extends Scene
         this.ballsAdded = 0;
         this.contactManagement = [];
         this.contactMangementWithVoid = [];
+        this.emittersClass = new Emitters(this)
+
+        this.emittersClass.buildEmitters()
 
         this.score = 0;
         this.scoreText = this.add.text(
@@ -153,7 +159,7 @@ export class Game extends Scene
 
         // create a time event which calls createBall method every 300 milliseconds, looping forever
         this.time.addEvent({
-            delay : 1800,
+            delay : 700,
             callback : () => {
                 if(Phaser.Math.Between(0,1) < 0.5) {
                     this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
@@ -470,9 +476,22 @@ export class Game extends Scene
 
             // loop through all contacts
             this.contactManagement.forEach((contact : ContactManagementDataType) => {
+
+                // set the emitters to explode
+                this.emittersClass.emitters[contact.value - 1].explode(
+                    50 * contact.value,
+                    toPixels(contact.body1.getPosition().x), 
+                    toPixels(contact.body1.getPosition().y)
+                );
+                this.emittersClass.emitters[contact.value - 1].explode(
+                    50 * contact.value,
+                    toPixels(contact.body2.getPosition().x), 
+                    toPixels(contact.body2.getPosition().y)
+                );
+
                 // add a time delay for ball destruction
                 this.time.addEvent({
-                    delay: 100,
+                    delay: 10,
                     callback: () => {
                         // destroy the balls
                         this.destroyBall(contact.body1);
@@ -567,7 +586,7 @@ export class Game extends Scene
                             console.warn("body in update does not exist")
                             return
                         }
-                        const _userData = body.getUserData();
+                        const _userData: any = body.getUserData();
                         if(_userData.type === bodyType.Ball) {
                             this.destroyBall(body)
                         }
