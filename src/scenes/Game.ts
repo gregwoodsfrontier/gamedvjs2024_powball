@@ -62,6 +62,8 @@ export class Game extends Scene
     startTime: Date
     timeText: Phaser.GameObjects.Text;
 
+    isGameOver: boolean = false
+
     preload ()
     {
         this.load.setPath('assets');
@@ -69,6 +71,8 @@ export class Game extends Scene
 
     // method to be called once the instance has been created
     create() : void {
+        this.isGameOver = false
+
         // layout params
         const {width, height} = this.scale
         const slopeW = width * 0.2
@@ -92,13 +96,16 @@ export class Game extends Scene
         ).setOrigin(1, 0)
 
         this.startTime = new Date()
+
         this.timeText = this.add.text(width/2, height/2, `0`,{
             fontSize: '48px'
         }).setOrigin(0.5, 0.5)
 
         // create a Box2D world with gravity
-        this.world = World(Vec2(0, GameOptions.gravity));
-
+        if(!this.world) {
+            this.world = World(Vec2(0, GameOptions.gravity));
+        }
+        
         this.wall = this.createBounds()
         this.bump = this.createPyramidBump()
         this.void = this.createVoidBody( width * 0.20 )
@@ -230,6 +237,10 @@ export class Game extends Scene
         const seconds = Math.floor(secondsRemaining)
 
         this.timeText.setText(`${seconds}`)
+
+        if(seconds < 0) {
+            this.isGameOver = true
+        }
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
@@ -435,18 +446,21 @@ export class Game extends Scene
     }
       
     // method to destroy a ball
-    destroyBall(ball : Body, id : number) : void {
+    destroyBall(ball : Body) : void {
         const userData : any = ball.getUserData();
         userData.sprite.destroy();
         this.world.destroyBody(ball); 
-        this.ids.splice(this.ids.indexOf(id), 1);    
+        this.ids.splice(this.ids.indexOf(userData.id), 1);    
     }
 
     // method to be executed at each frame
     update(totalTime : number, deltaTime : number) : void {  
 
-        this.updateTimer()
- 
+        if(!this.isGameOver) {
+            this.updateTimer()
+        }
+        
+
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
@@ -461,8 +475,8 @@ export class Game extends Scene
                     delay: 100,
                     callback: () => {
                         // destroy the balls
-                        this.destroyBall(contact.body1, contact.id1);
-                        this.destroyBall(contact.body2, contact.id2);
+                        this.destroyBall(contact.body1);
+                        this.destroyBall(contact.body2);
                         this.score += (contact.value * 10)
                     }
                 })
@@ -516,7 +530,7 @@ export class Game extends Scene
                     delay: 50,
                     callback: () => {
                         // destroy the balls
-                        this.destroyBall(contact.ball, contact.id)
+                        this.destroyBall(contact.ball)
                     }
                 })
             })
@@ -524,17 +538,45 @@ export class Game extends Scene
             this.contactMangementWithVoid = []
         }
 
-        // adjust balls position
+        // loop thru all bodies
         for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
-            const bodyPosition : Vec2 = body.getPosition();
-            const bodyAngle : number = body.getAngle();
             const userData : any = body.getUserData();
-            if(userData) {
-                userData.sprite.x = toPixels(bodyPosition.x);
-                userData.sprite.y = toPixels(bodyPosition.y);
+
+            if(userData.type === bodyType.Ball || userData.type === bodyType.Flipper) {
+                const bodyPosition : Vec2 = body.getPosition();
+                const bodyAngle : number = body.getAngle();
+
+                userData.sprite.setPosition(toPixels(bodyPosition.x), toPixels(bodyPosition.y));
                 userData.sprite.rotation = bodyAngle;
             }
-            
+
+            if(this.isGameOver) {
+                const gameOverTimer = this.time.addEvent({
+                    delay: 100,
+                    loop: true,
+                    callback: () => {
+                        // check if body count is zero
+                        if(this.world.getBodyCount() === 0 ){
+                            gameOverTimer.remove();
+
+                            this.scene.start("gameOver")
+                        }
+
+                        let body: Body = this.world.getBodyList() as Body
+                        if(!body){
+                            console.warn("body in update does not exist")
+                            return
+                        }
+                        const _userData = body.getUserData();
+                        if(_userData.type === bodyType.Ball) {
+                            this.destroyBall(body)
+                        }
+                        else {
+                            this.world.destroyBody(body)
+                        }
+                    }
+                })
+            }
         }
 
         // "A" key is for left flipper input

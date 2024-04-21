@@ -3,7 +3,7 @@
  
 export const GameOptions = {
     // time allowed for 1 round
-    maxTime: 60,
+    maxTime: 10,
 
     // max number of balls allowed to fall to void
     maxBalls: 10,
