@@ -59,6 +59,9 @@ export class Game extends Scene
     score: number;
     scoreText: Phaser.GameObjects.Text;
 
+    startTime: Date
+    timeText: Phaser.GameObjects.Text;
+
     preload ()
     {
         this.load.setPath('assets');
@@ -87,6 +90,11 @@ export class Game extends Scene
                 fontSize: '48px'
             }
         ).setOrigin(1, 0)
+
+        this.startTime = new Date()
+        this.timeText = this.add.text(width/2, height/2, `0`,{
+            fontSize: '48px'
+        }).setOrigin(0.5, 0.5)
 
         // create a Box2D world with gravity
         this.world = World(Vec2(0, GameOptions.gravity));
@@ -211,6 +219,19 @@ export class Game extends Scene
         });
     }
 
+    updateTimer() {
+        const curr = new Date()
+        const timeDiff = curr.getTime() - this.startTime.getTime()
+
+        const secondsElapsed = Math.abs(timeDiff / 1000)
+
+        const secondsRemaining = GameOptions.maxTime - secondsElapsed
+
+        const seconds = Math.floor(secondsRemaining)
+
+        this.timeText.setText(`${seconds}`)
+    }
+
     // Create a flipper based on world, position, angle lower limit and higher limit
     createFlipper(
         isLeft: boolean, _world: World, _wall: Body, 
@@ -294,8 +315,8 @@ export class Game extends Scene
             0,
             0,
             [
-                wallWidth + _slopeW, height - wallWidth,
-                width - wallWidth - _slopeW, height - wallWidth
+                wallWidth + _slopeW, height - 60,
+                width - wallWidth - _slopeW, height - 60
             ]
         ).setStrokeStyle(5, 0x0ff00ff).setOrigin(0,0).setClosePath(false)
 
@@ -423,6 +444,8 @@ export class Game extends Scene
 
     // method to be executed at each frame
     update(totalTime : number, deltaTime : number) : void {  
+
+        this.updateTimer()
  
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
