@@ -9,7 +9,7 @@ export class GameOver extends Scene {
         const { width, height } = this.scale
         
         // gameover text
-        this.add.text(width/2, height/2, 'GameOver', {
+        this.add.text(width/2, height/2, 'Game Over', {
             fontSize: '48px'
         }).setOrigin(0.5, 0.5)
 
@@ -21,7 +21,7 @@ export class GameOver extends Scene {
         this.time.addEvent({
             delay: 3000,
             callback: () => {
-                this.scene.start('Game')
+                this.scene.start('game')
             }
         })
 

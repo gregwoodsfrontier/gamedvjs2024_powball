@@ -40,7 +40,7 @@ export class Game extends Scene
 {
     constructor ()
     {
-        super('Game');
+        super('game');
     }
 
     world : World;
@@ -75,10 +75,8 @@ export class Game extends Scene
 
     // method to be called once the instance has been created
     create() : void {
-        // for code testing
+        
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
-        this.scene.launch("ui")
-        // code testing finished
 
         this.isGameOver = false
 
