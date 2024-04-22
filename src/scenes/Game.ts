@@ -16,6 +16,7 @@ import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
 import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
+import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 
 enum bodyType {
     Ball,
@@ -74,6 +75,11 @@ export class Game extends Scene
 
     // method to be called once the instance has been created
     create() : void {
+        // for code testing
+        eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
+        this.scene.launch("ui")
+        // code testing finished
+
         this.isGameOver = false
 
         // layout params
@@ -92,14 +98,14 @@ export class Game extends Scene
         this.emittersClass.buildEmitters()
 
         this.score = 0;
-        this.scoreText = this.add.text(
-            width - 30,
-            30,
-            `${this.score}`,
-            {
-                fontSize: '48px'
-            }
-        ).setOrigin(1, 0)
+        // this.scoreText = this.add.text(
+        //     width - 30,
+        //     30,
+        //     `${this.score}`,
+        //     {
+        //         fontSize: '48px'
+        //     }
+        // ).setOrigin(1, 0)
 
         this.startTime = new Date()
 
@@ -459,6 +465,19 @@ export class Game extends Scene
         this.ids.splice(this.ids.indexOf(userData.id), 1);    
     }
 
+    set setScore(_score: number) {
+        this.score = _score
+        eventsCenter.emit('score-updated', this.score)
+    }
+
+    setGameOver() {
+        eventsCenter.emit(CUSTOM_EVENTS.GAME_OVER)
+
+        this.scene.start("gameOver", {
+            score: this.score
+        })
+    }
+
     // method to be executed at each frame
     update(totalTime : number, deltaTime : number) : void {  
 
@@ -496,7 +515,7 @@ export class Game extends Scene
                         // destroy the balls
                         this.destroyBall(contact.body1);
                         this.destroyBall(contact.body2);
-                        this.score += (contact.value * 10)
+                        this.setScore = this.score + contact.value * 10
                     }
                 })
 
@@ -578,9 +597,8 @@ export class Game extends Scene
                         if(this.world.getBodyCount() === 0 ){
                             gameOverTimer.remove();
 
-                            this.scene.start("gameOver", {
-                                score: this.score
-                            })
+                            this.setGameOver()
+                            
                         }
 
                         let body: Body = this.world.getBodyList() as Body
@@ -621,7 +639,7 @@ export class Game extends Scene
         }
 
         // update score text every update frame
-        this.scoreText.setText(`${this.score}`)
+        // this.scoreText.setText(`${this.score}`)
         
     } 
 }
