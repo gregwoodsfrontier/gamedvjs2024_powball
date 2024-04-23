@@ -11,6 +11,7 @@ import { Preload } from './scenes/Preload'
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
 const config: Types.Core.GameConfig = {
     type: AUTO,
+    pixelart: true,
     width: 600,
     height: 800,
     parent: 'game-container',
@@ -21,11 +22,12 @@ const config: Types.Core.GameConfig = {
     },
     scene: [
         Preload,
+        MainMenu,
         GameContainer,
         MainGame,
         UIScene,
         GameOver,
-        MainMenu
+        
     ]
 };
 

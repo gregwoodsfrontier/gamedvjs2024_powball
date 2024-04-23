@@ -95,15 +95,7 @@ export class Game extends Scene
 
         this.emittersClass.buildEmitters()
 
-        this.score = 0;
-        // this.scoreText = this.add.text(
-        //     width - 30,
-        //     30,
-        //     `${this.score}`,
-        //     {
-        //         fontSize: '48px'
-        //     }
-        // ).setOrigin(1, 0)
+        this.setScore = 0
 
         this.startTime = new Date()
 
@@ -419,7 +411,7 @@ export class Game extends Scene
         // circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
         const ballSprite : Phaser.GameObjects.Sprite = this.add.sprite(posX, posY, 'golf');
         ballSprite.setTexture(GameOptions.ballbodies[value].spriteKey)
-        ballSprite.setDisplaySize(GameOptions.ballbodies[value].size * 2, GameOptions.ballbodies[value].size  * 2);
+        ballSprite.setDisplaySize(value * 20, value * 20);
         // ballSprite.setTint(GameOptions.bodies[value].color)
 
         const ball : Body = this.world.createDynamicBody({
