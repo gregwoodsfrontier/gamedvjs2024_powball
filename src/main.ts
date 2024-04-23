@@ -5,6 +5,7 @@ import { GameOver } from './scenes/GameOver';
 import { UIScene } from './scenes/UI';
 import { GameContainer } from './scenes/GameContainer';
 import { MainMenu } from './scenes/MainMenu';
+import { Preload } from './scenes/Preload'
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -19,6 +20,7 @@ const config: Types.Core.GameConfig = {
         autoCenter: Scale.CENTER_BOTH
     },
     scene: [
+        Preload,
         GameContainer,
         MainGame,
         UIScene,

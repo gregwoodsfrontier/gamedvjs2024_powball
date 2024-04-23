@@ -415,8 +415,13 @@ export class Game extends Scene
 
     // method to create a ball
     createBall(posX : number, posY : number, value : number) : Body {
-        const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
-        circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
+        // const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
+        // circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
+        const ballSprite : Phaser.GameObjects.Sprite = this.add.sprite(posX, posY, 'golf');
+        ballSprite.setTexture(GameOptions.ballbodies[value].spriteKey)
+        ballSprite.setDisplaySize(GameOptions.ballbodies[value].size * 2, GameOptions.ballbodies[value].size  * 2);
+        // ballSprite.setTint(GameOptions.bodies[value].color)
+
         const ball : Body = this.world.createDynamicBody({
             position : new Vec2(toMeters(posX), toMeters(posY)),
             type: 'dynamic',
@@ -429,7 +434,8 @@ export class Game extends Scene
             restitution : 0.3
         });
         ball.setUserData({
-            sprite : circle,
+            // sprite : circle,
+            sprite: ballSprite,
             type : bodyType.Ball,
             value : value,
             id : this.ballsAdded
