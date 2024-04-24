@@ -5,8 +5,8 @@ export class GameContainer extends Scene {
         super('gameContainer')
     }
 
-    create() {
-        this.scene.launch('game')
+    create(data: any) {
+        this.scene.launch('game', data)
         this.scene.launch('ui')
     }
 }

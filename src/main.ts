@@ -22,8 +22,10 @@ const config: Types.Core.GameConfig = {
     },
     scene: [
         Preload,
-        MainMenu,
         GameContainer,
+        
+        MainMenu,
+        
         MainGame,
         UIScene,
         GameOver,

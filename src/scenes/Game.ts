@@ -12,11 +12,12 @@ import {
     AABB,
     Fixture
 } from 'planck';
-import { Scene } from 'phaser';
+import { Scene, GameObjects } from 'phaser';
 import { GameOptions } from '../gameOptions';
 import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
+import { WINCON } from '../types/winCon';
 
 enum bodyType {
     Ball,
@@ -59,22 +60,32 @@ export class Game extends Scene
     ballsAdded : number;
     ids : number[];
     score: number;
-    scoreText: Phaser.GameObjects.Text;
+    scoreText: GameObjects.Text;
 
     startTime: Date
-    timeText: Phaser.GameObjects.Text;
+    timeText: GameObjects.Text;
+    lifeText: GameObjects.Text;
 
     isGameOver: boolean = false
 
     emittersClass: Emitters
 
-    preload ()
-    {
-        this.load.setPath('assets');
-    }
+    ballsIntoVoid: number
+
+    winCon: number
 
     // method to be called once the instance has been created
-    create() : void {
+    create(data: {wincon: number}) : void {
+
+        if(!(data.wincon === WINCON.BALLS || data.wincon === WINCON.TIME)) {
+            console.error('the wincon does not exist! returning back to main menu')
+            this.scene.start("mainMenu")
+            return
+        }
+        else
+        {
+            this.winCon = data.wincon
+        }
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
 
@@ -95,13 +106,31 @@ export class Game extends Scene
 
         this.emittersClass.buildEmitters()
 
-        this.setScore = 0
-
         this.startTime = new Date()
 
         this.timeText = this.add.text(width/2, height/2, `0`,{
             fontSize: '48px'
         }).setOrigin(0.5, 0.5)
+
+        this.lifeText = this.add.text(width * 0.5, height * 0.8, `0`,{
+            fontSize: '48px',
+            color: '#dde452'
+        }).setOrigin(0.5, 0.5)
+
+        this.setScore = 0
+
+        // balls
+        this.updateBallsIntoVoid = 0
+
+        // hide the time text if win condition is not time-based, and vice versa.
+        if(this.winCon === WINCON.TIME) {
+            this.timeText.setVisible(true)
+            this.lifeText.setVisible(false)
+        }
+        else {
+            this.timeText.setVisible(false)
+            this.lifeText.setVisible(true)
+        }
 
         // create a Box2D world with gravity
         if(!this.world) {
@@ -130,7 +159,7 @@ export class Game extends Scene
                 this.wall,
                 pathData[2],
                 pathData[3],
-                60,
+                65,
                 10,
                 -10.0 * Math.PI / 180.0,
                 slopeAngle
@@ -142,7 +171,7 @@ export class Game extends Scene
                 this.wall,
                 RAnchorPt.x,
                 RAnchorPt.y,
-                60,
+                65,
                 10,
                 -slopeAngle,
                 10.0 * Math.PI / 180.0
@@ -228,6 +257,15 @@ export class Game extends Scene
         });
     }
 
+    set updateBallsIntoVoid(_newValue: number) {
+        this.ballsIntoVoid = _newValue
+        this.lifeText.setText(`${this.ballsIntoVoid}`)
+
+        if(this.ballsIntoVoid >= GameOptions.maxBalls) {
+            this.isGameOver = true
+        }
+    }
+
     updateTimer() {
         const curr = new Date()
         const timeDiff = curr.getTime() - this.startTime.getTime()
@@ -240,8 +278,13 @@ export class Game extends Scene
 
         this.timeText.setText(`${seconds}`)
 
-        if(seconds < 0) {
-            this.isGameOver = true
+        if(seconds <= 0) {
+            if(this.winCon === WINCON.TIME) {
+                this.isGameOver = true
+            }
+            else {
+                return
+            }
         }
     }
 
@@ -565,6 +608,7 @@ export class Game extends Scene
                     callback: () => {
                         // destroy the balls
                         this.destroyBall(contact.ball)
+                        this.updateBallsIntoVoid = this.ballsIntoVoid + 1
                     }
                 })
             })

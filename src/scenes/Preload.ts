@@ -6,7 +6,7 @@ export class Preload extends Scene {
     }
 
     preload() {
-        this.load.setPath("/public/assets/");
+        this.load.setPath("/assets/");
 
         this.load.image('game_logo', 'powball_logo_bg_transparent.png')
         this.load.image('golf', 'balls/golf.png');

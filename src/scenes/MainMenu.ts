@@ -1,4 +1,6 @@
-import { Scene, Tweens } from 'phaser';
+import { Scene } from 'phaser';
+import { Button } from '../ui/button';
+import { WINCON } from '../types/winCon';
 
 export class MainMenu extends Scene {
     constructor() {
@@ -18,47 +20,76 @@ export class MainMenu extends Scene {
 
     createButtons() {
         const { width, height } = this.scale
-        
-        const playButton = this.add.text(width*0.5, height* 0.45, 'Play Game', {
-            fontSize: '32px',
-            color: '#ffffff',
-            align: 'center',
-            fixedWidth: 260,
-            backgroundColor: '#2d2d2d'
-        }).setPadding(32).setOrigin(0.5)
 
-        playButton.setInteractive({ useHandCursor: true });
-
-        playButton.on('pointerover', () => {
-            playButton.setBackgroundColor('#8d8d8d');
-        });
-
-        playButton.on('pointerout', () => {
-            playButton.setBackgroundColor('#2d2d2d');
+        const playButton2 = new Button(this, width*0.5, height*0.45, 'Play With 10 Lifes')
+        playButton2.on_pointerover = () => {
+            playButton2.textButton.setBackgroundColor('#8d8d8d');
+        }
+        playButton2.on_pointerout = () => {
+            playButton2.textButton.setBackgroundColor('#2d2d2d');
             this.add.tween({
-                targets: playButton,
+                targets: playButton2.textButton,
                 scale: 1.00,
-                duration: 100,
+                duration: 50,
                 ease: 'bounce.out'
-            })
-        });
-
-        playButton.on('pointerdown', () => {
+            })    
+        }
+        playButton2.on_pointerdown = () => {
             this.add.tween({
-                targets: playButton,
+                targets: playButton2.textButton,
                 scale: 0.75,
                 duration: 100,
                 ease: 'bounce.out'
             })
-        })
-
-        playButton.on('pointerup', () => {
-            this.add.tween({
-                targets: playButton,
+        }
+        playButton2.on_pointerup = () => {
+            const tween = this.add.tween({
+                targets: playButton2.textButton,
                 scale: 1.00,
                 duration: 100,
                 ease: 'bounce.out'
             })
-        })
+            tween.once('complete', () => this.scene.start("gameContainer", {wincon: WINCON.BALLS}))
+        }
+        playButton2.textButton.on("pointerover", playButton2.on_pointerover, this)
+        playButton2.textButton.on("pointerout", playButton2.on_pointerout, this)
+        playButton2.textButton.on("pointerdown", playButton2.on_pointerdown, this)
+        playButton2.textButton.on("pointerup", playButton2.on_pointerup, this)
+
+        // Button but with limited Time
+        const playButtonT = new Button(this, width*0.5, height*0.65, 'Play With 60 s')
+        playButtonT.on_pointerover = () => {
+            playButtonT.textButton.setBackgroundColor('#8d8d8d');
+        }
+        playButtonT.on_pointerout = () => {
+            playButtonT.textButton.setBackgroundColor('#2d2d2d');
+            this.add.tween({
+                targets: playButtonT.textButton,
+                scale: 1.00,
+                duration: 50,
+                ease: 'bounce.out'
+            })    
+        }
+        playButtonT.on_pointerdown = () => {
+            this.add.tween({
+                targets: playButtonT.textButton,
+                scale: 0.75,
+                duration: 100,
+                ease: 'bounce.out'
+            })
+        }
+        playButtonT.on_pointerup = () => {
+            const tween = this.add.tween({
+                targets: playButtonT.textButton,
+                scale: 1.00,
+                duration: 100,
+                ease: 'bounce.out'
+            })
+            tween.once('complete', () => this.scene.start("gameContainer", {wincon: WINCON.TIME}))
+        }
+        playButtonT.textButton.on("pointerover", playButtonT.on_pointerover, this)
+        playButtonT.textButton.on("pointerout", playButtonT.on_pointerout, this)
+        playButtonT.textButton.on("pointerdown", playButtonT.on_pointerdown, this)
+        playButtonT.textButton.on("pointerup", playButtonT.on_pointerup, this)
     }
 }
