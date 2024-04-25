@@ -184,7 +184,7 @@ export class Game extends Scene
 
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
-        // create a time event which calls createBall method every 300 milliseconds, looping forever
+        // create a time event which calls createBall method every x milliseconds, looping forever
         this.time.addEvent({
             delay : 700,
             callback : () => {
@@ -216,25 +216,27 @@ export class Game extends Scene
                 if (userDataA.value == userDataB.value) {
                     // balls ids must not be already present in the array of ids 
                     if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
-                        
-                        // add bodies ids to ids array
-                        this.ids.push(userDataA.id)
-                        this.ids.push(userDataB.id)
+                        // 2 balls must not be the largest ball
+                        if(userDataA.value < GameOptions.ballbodies.length - 1) {
+                            // add bodies ids to ids array
+                            this.ids.push(userDataA.id)
+                            this.ids.push(userDataB.id)
 
-                        // clamp the resultant value
-                        const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
+                            // clamp the resultant value
+                            const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
 
-                        // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
-                        this.contactManagement.push({
-                            body1 : contact.getFixtureA().getBody(),
-                            body2 : contact.getFixtureB().getBody(),
-                            point : contactPoint,
-                            value : finalValue,
-                            id1 : userDataA.id,
-                            id2 : userDataB.id,
-                            body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
-                            body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
-                        })
+                            // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
+                            this.contactManagement.push({
+                                body1 : contact.getFixtureA().getBody(),
+                                body2 : contact.getFixtureB().getBody(),
+                                point : contactPoint,
+                                value : finalValue,
+                                id1 : userDataA.id,
+                                id2 : userDataB.id,
+                                body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
+                                body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
+                            })
+                        }
                     }
                 }  
             }
@@ -647,7 +649,7 @@ export class Game extends Scene
                 userData.sprite.rotation = bodyAngle;
             }
 
-            if(this.isGameOver) {
+            if(this.isGameOver && !import.meta.env.DEV) {
                 const gameOverTimer = this.time.addEvent({
                     delay: 100,
                     loop: true,
