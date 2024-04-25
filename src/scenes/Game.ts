@@ -664,8 +664,11 @@ export class Game extends Scene
 
                         let body: Body = this.world.getBodyList() as Body
                         if(!body){
-                            console.warn("body in update does not exist")
-                            return
+                            if(import.meta.env.DEV) {
+                                console.warn("body in update does not exist")
+                            } else {
+                                return
+                            }
                         }
                         const _userData: any = body.getUserData();
                         if(_userData.type === bodyType.Ball) {
