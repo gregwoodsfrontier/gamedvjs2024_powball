@@ -221,12 +221,15 @@ export class Game extends Scene
                         this.ids.push(userDataA.id)
                         this.ids.push(userDataB.id)
 
+                        // clamp the resultant value
+                        const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
+
                         // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
                         this.contactManagement.push({
                             body1 : contact.getFixtureA().getBody(),
                             body2 : contact.getFixtureB().getBody(),
                             point : contactPoint,
-                            value : userDataA.value + 1,
+                            value : finalValue,
                             id1 : userDataA.id,
                             id2 : userDataB.id,
                             body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
@@ -237,17 +240,16 @@ export class Game extends Scene
             }
 
             // make a condition that calls function to destroy balls in void
-            if (userDataA.type == bodyType.Void && userDataB.type == bodyType.Ball) {
+            if (userDataA.type === bodyType.Void && userDataB.type === bodyType.Ball) {
                 if (this.ids.indexOf(userDataB.id) == -1) {
                     this.ids.push(userDataB.id)
                     this.contactMangementWithVoid.push({
                         ball: contact.getFixtureB().getBody(),
                         id: userDataB.id
                     })
-                    // this.events.emit('destroy-in-void', contact.getFixtureB().getBody(), userDataB.id)
                 }
             }
-            else if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Void) {
+            else if (userDataA.type === bodyType.Ball && userDataB.type === bodyType.Void) {
                 if (this.ids.indexOf(userDataA.id) == -1) {
                     this.ids.push(userDataA.id)
                     this.contactMangementWithVoid.push({
@@ -261,7 +263,7 @@ export class Game extends Scene
 
     set updateBallsIntoVoid(_newValue: number) {
         this.ballsIntoVoid = _newValue
-        this.lifeText.setText(`${this.ballsIntoVoid}`)
+        this.lifeText.setText(`${10 - this.ballsIntoVoid}`)
 
         if(this.ballsIntoVoid >= GameOptions.maxBalls) {
             this.isGameOver = true
