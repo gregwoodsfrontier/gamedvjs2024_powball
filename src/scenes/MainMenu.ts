@@ -13,6 +13,7 @@ export class MainMenu extends Scene {
         this.createButtons()
 
         const bgMusic = this.sound.add('bg_music', {
+            volume: 0.70,
             loop: true
         })
         bgMusic.play()

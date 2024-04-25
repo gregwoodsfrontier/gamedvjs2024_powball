@@ -74,6 +74,8 @@ export class Game extends Scene
 
     winCon: number
 
+    swoosh: Phaser.Sound.BaseSound
+
     // method to be called once the instance has been created
     create(data: {wincon: number}) : void {
 
@@ -510,6 +512,10 @@ export class Game extends Scene
     }
 
     setGameOver() {
+        if(this.swoosh.isPlaying) {
+            this.swoosh.stop()
+        }
+        
         eventsCenter.emit(CUSTOM_EVENTS.GAME_OVER)
 
         this.scene.start("gameOver", {
@@ -552,6 +558,7 @@ export class Game extends Scene
                     delay: 10,
                     callback: () => {
                         // destroy the balls
+                        this.sound.add(GameOptions.ballbodies[contact.value].audioKey).play()
                         this.destroyBall(contact.body1);
                         this.destroyBall(contact.body2);
                         this.setScore = this.score + contact.value * 10
@@ -607,7 +614,16 @@ export class Game extends Scene
                     delay: 50,
                     callback: () => {
                         // destroy the balls
-                        this.sound.add('swoosh').play()
+                        this.swoosh = this.sound.add('swoosh', {
+                            volume: 0.5
+                        })
+                        if(this.swoosh.isPlaying) {
+                            this.swoosh.stop()
+                        }
+                        else {
+                            this.swoosh.play()
+                        }
+                        
                         this.destroyBall(contact.ball)
                         this.updateBallsIntoVoid = this.ballsIntoVoid + 1
                     }
