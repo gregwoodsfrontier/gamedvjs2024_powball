@@ -6,9 +6,6 @@ export class Emitters {
 
         this.currentScene = _scene
         this.emitters = []
-        console.log('Emiiters class')
-
-        // this.currentScene.events.once(Phaser.Scenes.Events.CREATE, this.create, this)
     }
 
     currentScene: Scene

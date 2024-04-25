@@ -16,11 +16,19 @@ export class Preload extends Scene {
         this.load.image('basketball', 'balls/basketball.png');
         this.load.image('bowling', 'balls/bowling.png');
         this.load.image('football', 'balls/football.png');
+
+        this.load.audio('bg_music', 'audio/game-music-loop-18-XtremeFreddy.mp3')
+        this.load.audio('plate_light_1', 'audio/impactPlate_light_001.ogg')
+        this.load.audio('plate_light_2', 'audio/impactPlate_light_002.ogg')
+        this.load.audio('plate_med_0', 'audio/impactPlate_medium_000.ogg')
+        this.load.audio('plate_med_1', 'audio/impactPlate_medium_001.ogg')
+        this.load.audio('punch_med_0', 'audio/impactPunch_medium_000.ogg')
+        this.load.audio('punch_med_4', 'audio/impactPunch_medium_004.ogg')
+        this.load.audio('swoosh', 'audio/soundflakes_swoosh.ogg')
     
     }
 
     create() {
         this.scene.start('mainMenu')
-        // this.scene.start('gameContainer');
     }
 }

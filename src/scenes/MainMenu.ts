@@ -11,6 +11,12 @@ export class MainMenu extends Scene {
         this.createGameLogo()
 
         this.createButtons()
+
+        const bgMusic = this.sound.add('bg_music', {
+            loop: true
+        })
+        bgMusic.play()
+        this.sound.pauseOnBlur = true;
     }
 
     createGameLogo() {

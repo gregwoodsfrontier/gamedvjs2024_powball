@@ -16,13 +16,13 @@ export const GameOptions = {
 
     // set of data for various balls
     ballbodies: [
-        {size: 10, spriteKey:'golf' , particleSize: 10, color: 0x0078ff},
-        {size: 20, spriteKey:'baseball' , particleSize: 20, color: 0x0078ff},
-        {size: 30, spriteKey:'tennis' , particleSize: 30, color: 0x0078ff},
-        {size: 40, spriteKey:'valleyball' , particleSize: 40, color: 0x0078ff},
-        {size: 50, spriteKey:'bowling' , particleSize: 50, color: 0x0078ff},
-        {size: 60, spriteKey:'football' , particleSize: 60, color: 0x0078ff},
-        {size: 70, spriteKey:'basketball' , particleSize: 70, color: 0x0078ff},
+        {size: 10, audioKey:'plate_light_1', spriteKey:'golf' , particleSize: 10, color: 0x0078ff},
+        {size: 20, audioKey:'plate_light_2', spriteKey:'baseball' , particleSize: 20, color: 0x0078ff},
+        {size: 30, audioKey:'plate_med_0', spriteKey:'tennis' , particleSize: 30, color: 0x0078ff},
+        {size: 40, audioKey:'plate_med_1', spriteKey:'valleyball' , particleSize: 40, color: 0x0078ff},
+        {size: 50, audioKey:'punch_med_0', spriteKey:'bowling' , particleSize: 50, color: 0x0078ff},
+        {size: 60, audioKey:'punch_med_4', spriteKey:'football' , particleSize: 60, color: 0x0078ff},
+        {size: 70, audioKey:'punch_med_4', spriteKey:'basketball' , particleSize: 70, color: 0x0078ff},
     ],
 
     // colors of various balls

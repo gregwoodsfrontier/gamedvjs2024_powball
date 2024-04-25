@@ -607,6 +607,7 @@ export class Game extends Scene
                     delay: 50,
                     callback: () => {
                         // destroy the balls
+                        this.sound.add('swoosh').play()
                         this.destroyBall(contact.ball)
                         this.updateBallsIntoVoid = this.ballsIntoVoid + 1
                     }
