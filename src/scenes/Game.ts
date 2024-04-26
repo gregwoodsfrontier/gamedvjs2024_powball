@@ -661,7 +661,7 @@ export class Game extends Scene
                 userData.sprite.rotation = bodyAngle;
             }
 
-            if(this.isGameOver && !import.meta.env.DEV) {
+            if(this.isGameOver) {
                 const gameOverTimer = this.time.addEvent({
                     delay: 100,
                     loop: true,
@@ -678,9 +678,9 @@ export class Game extends Scene
                         if(!body){
                             if(import.meta.env.DEV) {
                                 console.warn("body in update does not exist")
-                            } else {
-                                return
-                            }
+                            } 
+                            
+                            return
                         }
                         const _userData: any = body.getUserData();
                         if(_userData.type === bodyType.Ball) {
