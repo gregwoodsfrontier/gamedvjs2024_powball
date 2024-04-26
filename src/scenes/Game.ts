@@ -716,7 +716,6 @@ export class Game extends Scene
         if (this.rightFlipper) {
             if(this.DKey?.isDown) {
                 this.rightFlipper.setMotorSpeed(30.0)
-                this.sound.add('flip-right').play()
             }
             else {
                 this.rightFlipper.setMotorSpeed(-5.0)
