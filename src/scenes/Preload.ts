@@ -24,8 +24,12 @@ export class Preload extends Scene {
         this.load.audio('plate_med_1', 'audio/impactPlate_medium_001.ogg')
         this.load.audio('punch_med_0', 'audio/impactPunch_medium_000.ogg')
         this.load.audio('punch_med_4', 'audio/impactPunch_medium_004.ogg')
-        this.load.audio('swoosh', 'audio/soundflakes_swoosh.ogg')
-    
+        this.load.audio('swoosh', 'audio/impactPlate_heavy_004.ogg')
+        this.load.audio('switch', 'audio/switch_001.ogg')
+        this.load.audio('flipper-hit', 'audio/impactMetal_heavy_003.ogg')
+        this.load.audio('flip-left', 'audio/jingles_SAX04.ogg')
+        this.load.audio('flip-right', 'audio/jingles_SAX05.ogg')
+        
     }
 
     create() {

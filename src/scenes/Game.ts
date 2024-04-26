@@ -260,12 +260,24 @@ export class Game extends Scene
                     })
                 }
             }
+
+            // play a sound when ball hits
+            if((userDataA.type === bodyType.Ball && userDataB.type === bodyType.Flipper) || (userDataA.type === bodyType.Flipper && userDataB.type === bodyType.Ball)) {
+                if(userDataB.type === bodyType.Ball) {
+                    const bodyB = contact.getFixtureB().getBody()
+                    const velB = bodyB.getLinearVelocity().lengthSquared()
+                    const threshold = 100
+                    if(velB > threshold) {
+                        this.sound.add('flipper-hit').play()
+                    }
+                }
+            }
         });
     }
 
     set updateBallsIntoVoid(_newValue: number) {
         this.ballsIntoVoid = _newValue
-        this.lifeText.setText(`${10 - this.ballsIntoVoid}`)
+        this.lifeText.setText(`${GameOptions.maxBalls - this.ballsIntoVoid}`)
 
         if(this.ballsIntoVoid >= GameOptions.maxBalls) {
             this.isGameOver = true
@@ -312,7 +324,7 @@ export class Game extends Scene
         const jointData = {
             enableMotor: true,
             enableLimit: true,
-            maxMotorTorque: 5000.0,
+            maxMotorTorque: 7500.0,
             motorSpeed: 0.0,
             lowerAngle: lowAngle,
             upperAngle: highAngle
@@ -682,10 +694,18 @@ export class Game extends Scene
             }
         }
 
+        if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
+            this.sound.add('flip-left').play()
+        }
+
+        if(this.DKey && Phaser.Input.Keyboard.JustDown(this.DKey)) {
+            this.sound.add('flip-right').play()
+        }
+
         // "A" key is for left flipper input
         if (this.leftFlipper) {
             if(this.AKey?.isDown) {
-                this.leftFlipper.setMotorSpeed(-20.0)
+                this.leftFlipper.setMotorSpeed(-30.0)
             }
             else {
                 this.leftFlipper.setMotorSpeed(5.0)
@@ -695,7 +715,8 @@ export class Game extends Scene
         // "D" key is for left flipper input
         if (this.rightFlipper) {
             if(this.DKey?.isDown) {
-                this.rightFlipper.setMotorSpeed(20.0)
+                this.rightFlipper.setMotorSpeed(30.0)
+                this.sound.add('flip-right').play()
             }
             else {
                 this.rightFlipper.setMotorSpeed(-5.0)

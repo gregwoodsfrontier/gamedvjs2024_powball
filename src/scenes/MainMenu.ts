@@ -42,6 +42,7 @@ export class MainMenu extends Scene {
             })    
         }
         playButton2.on_pointerdown = () => {
+            this.sound.add('switch').play()
             this.add.tween({
                 targets: playButton2.textButton,
                 scale: 0.75,
@@ -78,6 +79,7 @@ export class MainMenu extends Scene {
             })    
         }
         playButtonT.on_pointerdown = () => {
+            this.sound.add('switch').play()
             this.add.tween({
                 targets: playButtonT.textButton,
                 scale: 0.75,
