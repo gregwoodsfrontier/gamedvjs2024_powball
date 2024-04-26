@@ -1,0 +1,59 @@
+# .github/workflows/release.yml
+name: Release project
+on:
+  workflow_dispatch:
+
+jobs:
+  build-project:
+    name: setup and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+
+      - name: install dependencies 
+        run: npm ci
+      - run: npm run build
+
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Ayowel/butler-to-itch@v1.0.0
+        with:
+          # Whether to install Butler or to push a file.
+          # This may be used when you want to use Butler with custom
+          # commands.
+          action: "push"
+          # Where Butler should be installed.
+          install_dir: ~/.butler
+
+          ###### Push options ######
+          # Your butler key (see https://itch.io/user/settings/api-keys)
+          butler_key: ""
+          # The itch username of the user that distributes the game
+          itch_user: ""
+          # The name of the game in the project's url
+          itch_game: ""
+          # The game version number
+          version: ""
+          # The files to push to itch.
+          # File paths support globing and may start with a channel name.
+          files: ""
+          # If no channel is provided for a file, to generate one from the
+          # file's name.
+          auto_channel: true
+
+          ###### Install options ######
+          # Whether to verify the downloaded Butler archive's signature
+          check_signature: true
+          # Whether to update the PATH variable to include Butler's
+          # install directory
+          update_path: false
+          # Which Butler version to install
+          butler_version: "latest"

@@ -20,7 +20,8 @@
     "devDependencies": {
         "terser": "^5.28.1",
         "typescript": "^5.3.3",
-        "vite": "^5.1.4"
+        "vite": "^5.1.4",
+        "vite-plugin-zip-pack": "^1.2.3"
     },
     "dependencies": {
         "phaser": "^3.80.1",
