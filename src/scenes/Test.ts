@@ -1,21 +1,20 @@
 import { Scene } from 'phaser';
 
 export class Test extends Scene {
-    constructor() {
-        
-        super('test')
+  planckConfig = {
+    scaleFactor: 30,
+    gravity: { x: 0, y: 9 },
+    debug: true,
+    speed: 1,
+    hz: 60,
+  };
 
-        this.planckConfig = {
-          scaleFactor: 30,
-          gravity: { x: 0, y: 9 },
-          debug: true,
-          speed: 1,
-          hz: 60,
-      };
-    }
+  constructor() {
+    super('test')
+  }
 
-    create() {
-        // Box Texture
+  create() {
+    // Box Texture
     const boxTexture = this.add.graphics();
     boxTexture.fillStyle(0xffff00);
     boxTexture.fillRect(0, 0, 100, 100);
@@ -66,14 +65,14 @@ export class Test extends Scene {
         { x: 900, y: 600 },
       ],
       {}
-    );
+  );
 
-    console.log(chainSprite)
+  console.log(chainSprite)
 
-    // createGround(this);
-    }
+  // createGround(this);
+  }
 
-    update() {
+  update() {
 
-    }
+  }
 }
