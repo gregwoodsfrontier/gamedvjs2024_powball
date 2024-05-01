@@ -2,14 +2,16 @@ import { Scene } from 'phaser';
 
 export class Test extends Scene {
     constructor() {
-        // planckConfig = {
-        //     scaleFactor: 30,
-        //     gravity: { x: 0, y: 9 },
-        //     debug: true,
-        //     speed: 1,
-        //     hz: 60,
-        // };
+        
         super('test')
+
+        this.planckConfig = {
+          scaleFactor: 30,
+          gravity: { x: 0, y: 9 },
+          debug: true,
+          speed: 1,
+          hz: 60,
+      };
     }
 
     create() {
@@ -32,7 +34,7 @@ export class Test extends Scene {
       delay: 500,
       callback: () => {
         const ball = this.planck.add.sprite(
-          Phaser.Math.Between(400, 800),
+          Phaser.Math.Between(100, 500),
           100,
           "ball"
         );
@@ -65,6 +67,8 @@ export class Test extends Scene {
       ],
       {}
     );
+
+    console.log(chainSprite)
 
     // createGround(this);
     }
