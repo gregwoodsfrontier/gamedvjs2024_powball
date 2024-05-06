@@ -18,6 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
+import { ROLE_TYPE, mWorld } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -92,6 +93,15 @@ export class Game extends Scene
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
 
         this.isGameOver = false
+
+        // just trying miniplex
+        const ball = mWorld.add({
+            position: {
+                x: 0,
+                y: 0
+            },
+            role: ROLE_TYPE.BALL
+        })
 
         // layout params
         const {width, height} = this.scale
