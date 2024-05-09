@@ -33,7 +33,7 @@ export class Preload extends Scene {
     }
 
     create() {
-        // this.scene.start('mainMenu')
-        this.scene.start('test')
+        this.scene.start('mainMenu')
+        // this.scene.start('game')
     }
 }

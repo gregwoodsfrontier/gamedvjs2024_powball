@@ -65,9 +65,8 @@ export class Test extends Scene {
         { x: 900, y: 600 },
       ],
       {}
-  );
+    );
 
-  console.log(chainSprite)
 
   // createGround(this);
   }

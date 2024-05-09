@@ -93,16 +93,7 @@ export class Game extends Scene
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
 
         this.isGameOver = false
-
-        // just trying miniplex
-        const ball = mWorld.add({
-            position: {
-                x: 0,
-                y: 0
-            },
-            role: ROLE_TYPE.BALL
-        })
-
+        
         // layout params
         const {width, height} = this.scale
         const slopeW = width * 0.2
@@ -149,64 +140,65 @@ export class Game extends Scene
             this.world = World(Vec2(0, GameOptions.gravity));
         }
         
-        this.wall = this.createBounds()
-        this.bump = this.createPyramidBump()
-        this.void = this.createVoidBody( width * 0.20 )
+        this.createBounds()
 
-        const { pathData } = (this.wall.getUserData() as any).sprite
+        // this.bump = this.createPyramidBump()
+        // this.void = this.createVoidBody( width * 0.20 )
 
-        if(pathData){
+        // const { pathData } = (this.wall.getUserData() as any).sprite
 
-            const LAnchorPt = {x: pathData[2], y: pathData[3]}
-            const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
+        // if(pathData){
 
-            // create point for indication
-            this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
-            this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
+        //     const LAnchorPt = {x: pathData[2], y: pathData[3]}
+        //     const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
 
-            // create the flippers
-            this.leftFlipper = this.createFlipper(
-                true,
-                this.world,
-                this.wall,
-                pathData[2],
-                pathData[3],
-                65,
-                10,
-                -10.0 * Math.PI / 180.0,
-                slopeAngle
-            )
+        //     // create point for indication
+        //     this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
+        //     this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
 
-            this.rightFlipper = this.createFlipper(
-                false,
-                this.world,
-                this.wall,
-                RAnchorPt.x,
-                RAnchorPt.y,
-                65,
-                10,
-                -slopeAngle,
-                10.0 * Math.PI / 180.0
-            )
-        }
+        //     // create the flippers
+        //     this.leftFlipper = this.createFlipper(
+        //         true,
+        //         this.world,
+        //         this.wall,
+        //         pathData[2],
+        //         pathData[3],
+        //         65,
+        //         10,
+        //         -10.0 * Math.PI / 180.0,
+        //         slopeAngle
+        //     )
+
+        //     this.rightFlipper = this.createFlipper(
+        //         false,
+        //         this.world,
+        //         this.wall,
+        //         RAnchorPt.x,
+        //         RAnchorPt.y,
+        //         65,
+        //         10,
+        //         -slopeAngle,
+        //         10.0 * Math.PI / 180.0
+        //     )
+        // }
 
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
 
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // create a time event which calls createBall method every x milliseconds, looping forever
-        this.time.addEvent({
-            delay : 700,
-            callback : () => {
-                if(Phaser.Math.Between(0,1) < 0.5) {
-                    this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
-                }
-                else {
-                    this.createBall(Phaser.Math.Between(width/2 + 20, width - 100), height * 0.05, 1);
-                }
-            },
-            loop : true
-        });
+        // this.time.addEvent({
+        //     delay : 700,
+        //     callback : () => {
+        //         if(Phaser.Math.Between(0,1) < 0.5) {
+        //             this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
+        //         }
+        //         else {
+        //             this.createBall(Phaser.Math.Between(width/2 + 20, width - 100), height * 0.05, 1);
+        //         }
+        //     },
+        //     loop : true
+        // });
 
         // this is the collision listener used to process contacts
         this.world.on('pre-solve', (contact : Contact)  => {
@@ -381,10 +373,7 @@ export class Game extends Scene
         const body = this.createChainFixture(
             this.world,
             points,
-            1,
-            1,
-            shape,
-            bodyType.Wall
+            shape
         )
 
         return body
@@ -407,10 +396,7 @@ export class Game extends Scene
         const body = this.createChainFixture(
             this.world,
             dg.pathData,
-            1,
-            1,
-            dg,
-            bodyType.Void
+            dg
         )
 
         return body
@@ -438,39 +424,50 @@ export class Game extends Scene
         ]
 
         // for the bounding walls
-        const renderWall = this.add.polygon(
+        const SPRITE = this.add.polygon(
             0,
             0,
             wallPts
-        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
+        ).setStrokeStyle(5, 0xff9a00)
+        .setClosePath(false)
+        .setOrigin(0,0)
 
         // creating planck body for wall
         const body = this.createChainFixture(
             this.world,
             wallPts,
-            1,
-            1,
-            renderWall,
-            bodyType.Wall
+            SPRITE
         )
 
-        return body
+        const fixture = body.getFixtureList()
+
+        const entity = mWorld.add({
+            position: {
+                x: 0,
+                y: 0
+            },
+            role: ROLE_TYPE.WALL,
+            sprite: SPRITE,
+            pBody: body,
+            isStatic: true
+        })
+
+        if (fixture) {
+            mWorld.addComponent(entity, "pFixture", fixture)
+        }
+
+        console.log(entity)
+
     }
 
-    createChainFixture(_world: World, _points: number[], _density: number, _filterGpIdx: number, _sprite: Phaser.GameObjects.Polygon, _type: number) {
+    createChainFixture(_world: World, _points: number[], _sprite: Phaser.GameObjects.Polygon) {
         const worldPoints = []
         for(let i = 0; i < _points.length / 2; i++) {
             worldPoints.push(Vec2(toMeters(_points[i*2] as number), toMeters(_points[i*2+1] as number)))
         }
         const body = _world.createBody()
         body.createFixture({
-            shape: Chain(worldPoints, false),
-            density: _density,
-            filterGroupIndex: _filterGpIdx
-        })
-        body.setUserData({
-            sprite: _sprite,
-            type: _type
+            shape: Chain(worldPoints, false)
         })
 
         return body
@@ -660,49 +657,49 @@ export class Game extends Scene
         }
 
         // loop thru all bodies
-        for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
-            const userData : any = body.getUserData();
+        // for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
+        //     const userData : any = body.getUserData();
 
-            if(userData.type === bodyType.Ball || userData.type === bodyType.Flipper) {
-                const bodyPosition : Vec2 = body.getPosition();
-                const bodyAngle : number = body.getAngle();
+        //     if(userData.type === bodyType.Ball || userData.type === bodyType.Flipper) {
+        //         const bodyPosition : Vec2 = body.getPosition();
+        //         const bodyAngle : number = body.getAngle();
 
-                userData.sprite.setPosition(toPixels(bodyPosition.x), toPixels(bodyPosition.y));
-                userData.sprite.rotation = bodyAngle;
-            }
+        //         userData.sprite.setPosition(toPixels(bodyPosition.x), toPixels(bodyPosition.y));
+        //         userData.sprite.rotation = bodyAngle;
+        //     }
 
-            if(this.isGameOver) {
-                const gameOverTimer = this.time.addEvent({
-                    delay: 100,
-                    loop: true,
-                    callback: () => {
-                        // check if body count is zero
-                        if(this.world.getBodyCount() === 0 ){
-                            gameOverTimer.remove();
+        //     if(this.isGameOver) {
+        //         const gameOverTimer = this.time.addEvent({
+        //             delay: 100,
+        //             loop: true,
+        //             callback: () => {
+        //                 // check if body count is zero
+        //                 if(this.world.getBodyCount() === 0 ){
+        //                     gameOverTimer.remove();
 
-                            this.setGameOver()
+        //                     this.setGameOver()
                             
-                        }
+        //                 }
 
-                        let body: Body = this.world.getBodyList() as Body
-                        if(!body){
-                            if(import.meta.env.DEV) {
-                                console.warn("body in update does not exist")
-                            } 
+        //                 let body: Body = this.world.getBodyList() as Body
+        //                 if(!body){
+        //                     if(import.meta.env.DEV) {
+        //                         console.warn("body in update does not exist")
+        //                     } 
                             
-                            return
-                        }
-                        const _userData: any = body.getUserData();
-                        if(_userData.type === bodyType.Ball) {
-                            this.destroyBall(body)
-                        }
-                        else {
-                            this.world.destroyBody(body)
-                        }
-                    }
-                })
-            }
-        }
+        //                     return
+        //                 }
+        //                 const _userData: any = body.getUserData();
+        //                 if(_userData.type === bodyType.Ball) {
+        //                     this.destroyBall(body)
+        //                 }
+        //                 else {
+        //                     this.world.destroyBody(body)
+        //                 }
+        //             }
+        //         })
+        //     }
+        // }
 
         if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
             this.sound.add('flip-left').play()
