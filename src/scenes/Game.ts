@@ -18,7 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { ROLE_TYPE, mWorld } from '../types/miniplexECS';
+import { ROLE_TYPE, createBall, mWorld, syncSpritePhysicsSys } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -139,8 +139,9 @@ export class Game extends Scene
         if(!this.world) {
             this.world = World(Vec2(0, GameOptions.gravity));
         }
+
         
-        this.createBounds()
+        // this.createBounds()
 
         // this.bump = this.createPyramidBump()
         // this.void = this.createVoidBody( width * 0.20 )
@@ -275,6 +276,35 @@ export class Game extends Scene
                 }
             }
         });
+
+        // using miniplex to spawn game objects instead of coding inside scenes
+        mWorld.onEntityAdded.subscribe((entity) => {
+            console.log("A new entity has been spawned:", entity)
+            createBall(entity, this.world, mWorld, this)
+        })
+
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            mWorld.clear()
+            this.score = 0
+        })
+
+        // this.createBall(
+        //     width*0.25,
+        //     height*0.1,
+        //     GameOptions.ballbodies[0].size
+        // )
+
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                this.createBall(
+                    width * Phaser.Math.Between(25, 75) / 100,
+                    height * 0.1,
+                    GameOptions.ballbodies[0].size
+                )
+            },
+            repeat: 4
+        })        
     }
 
     set updateBallsIntoVoid(_newValue: number) {
@@ -474,35 +504,22 @@ export class Game extends Scene
     }
 
     // method to create a ball
-    createBall(posX : number, posY : number, value : number) : Body {
-        // const circle : Phaser.GameObjects.Arc = this.add.circle(posX, posY, value * 10, GameOptions.colors[value - 1], 0.5);
-        // circle.setStrokeStyle(1, GameOptions.colors[value - 1]);
-        const ballSprite : Phaser.GameObjects.Sprite = this.add.sprite(posX, posY, 'golf');
-        ballSprite.setTexture(GameOptions.ballbodies[value].spriteKey)
-        ballSprite.setDisplaySize(value * 20, value * 20);
-        // ballSprite.setTint(GameOptions.bodies[value].color)
-
-        const ball : Body = this.world.createDynamicBody({
-            position : new Vec2(toMeters(posX), toMeters(posY)),
-            type: 'dynamic',
-            bullet: true
-        });
-        ball.createFixture({
-            shape : new Circle(toMeters(value * 10)),
-            density : 1,
-            friction : 0.3,
-            restitution : 0.3
-        });
-        ball.setUserData({
-            // sprite : circle,
-            sprite: ballSprite,
-            type : bodyType.Ball,
-            value : value,
-            id : this.ballsAdded
+    createBall(posX : number, posY : number, value : number) {
+        mWorld.add({
+            position: {
+                x: posX,
+                y: posY
+            },
+            size: GameOptions.ballbodies[0].size,
+            sprite: {
+                key: GameOptions.ballbodies[0].spriteKey
+            },
+            planck: {
+                bodyType: "circle",
+                isStatic: false
+            },
+            score: value
         })
-        this.ballsAdded ++;
-
-        return ball
     }
 
     // method to create a wall
@@ -559,102 +576,104 @@ export class Game extends Scene
         this.world.clearForces();
 
         // check if any contacts need to be resolved
-        if(this.contactManagement.length > 0) {
+        // if(this.contactManagement.length > 0) {
 
-            // loop through all contacts
-            this.contactManagement.forEach((contact : ContactManagementDataType) => {
+        //     // loop through all contacts
+        //     this.contactManagement.forEach((contact : ContactManagementDataType) => {
 
-                // set the emitters to explode
-                this.emittersClass.emitters[contact.value - 1].explode(
-                    50 * contact.value,
-                    toPixels(contact.body1.getPosition().x), 
-                    toPixels(contact.body1.getPosition().y)
-                );
-                this.emittersClass.emitters[contact.value - 1].explode(
-                    50 * contact.value,
-                    toPixels(contact.body2.getPosition().x), 
-                    toPixels(contact.body2.getPosition().y)
-                );
+        //         // set the emitters to explode
+        //         this.emittersClass.emitters[contact.value - 1].explode(
+        //             50 * contact.value,
+        //             toPixels(contact.body1.getPosition().x), 
+        //             toPixels(contact.body1.getPosition().y)
+        //         );
+        //         this.emittersClass.emitters[contact.value - 1].explode(
+        //             50 * contact.value,
+        //             toPixels(contact.body2.getPosition().x), 
+        //             toPixels(contact.body2.getPosition().y)
+        //         );
 
-                // add a time delay for ball destruction
-                this.time.addEvent({
-                    delay: 10,
-                    callback: () => {
-                        // destroy the balls
-                        this.sound.add(GameOptions.ballbodies[contact.value].audioKey).play()
-                        this.destroyBall(contact.body1);
-                        this.destroyBall(contact.body2);
-                        this.setScore = this.score + contact.value * 10
-                    }
-                })
+        //         // add a time delay for ball destruction
+        //         this.time.addEvent({
+        //             delay: 10,
+        //             callback: () => {
+        //                 // destroy the balls
+        //                 this.sound.add(GameOptions.ballbodies[contact.value].audioKey).play()
+        //                 this.destroyBall(contact.body1);
+        //                 this.destroyBall(contact.body2);
+        //                 this.setScore = this.score + contact.value * 10
+        //             }
+        //         })
 
-                // adding a blast impulse to surrounding balls.
-                const query: AABB = new AABB(
-                    Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
-                    Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
-                )
+        //         // adding a blast impulse to surrounding balls.
+        //         const query: AABB = new AABB(
+        //             Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
+        //             Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
+        //         )
 
-                // query the world for fixtures inside the square, aka "radius"
-                this.world.queryAABB(query, (fixture: Fixture) => {
-                    const body: Body = fixture.getBody()
-                    const bodyPosition: Vec2 = body.getPosition()
+        //         // query the world for fixtures inside the square, aka "radius"
+        //         this.world.queryAABB(query, (fixture: Fixture) => {
+        //             const body: Body = fixture.getBody()
+        //             const bodyPosition: Vec2 = body.getPosition()
 
-                    // const bodyDistance: number = Math.sqrt(Math.pow(bodyPosition.y - contact.point.y, 2) + Math.pow(bodyPosition.x - contact.point.x, 2))
-                    const angle : number = Math.atan2(bodyPosition.y - contact.point.y, bodyPosition.x - contact.point.x);
+        //             // const bodyDistance: number = Math.sqrt(Math.pow(bodyPosition.y - contact.point.y, 2) + Math.pow(bodyPosition.x - contact.point.x, 2))
+        //             const angle : number = Math.atan2(bodyPosition.y - contact.point.y, bodyPosition.x - contact.point.x);
 
-                    // the explosion effect itself is just a linear velocity applied to bodies
-                    body.setLinearVelocity(new Vec2(GameOptions.blastImpulse * Math.cos(angle), GameOptions.blastImpulse * Math.sin(angle)));
+        //             // the explosion effect itself is just a linear velocity applied to bodies
+        //             body.setLinearVelocity(new Vec2(GameOptions.blastImpulse * Math.cos(angle), GameOptions.blastImpulse * Math.sin(angle)));
 
-                    return true
-                })
+        //             return true
+        //         })
                 
     
-                // add a time delay to create a new ball
-                this.time.addEvent({
-                    delay: 200,
-                    callback: () => {
-                        const ball = this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
-                        // need a function to launch the ball upon creation
-                        const resultantVel = Vec2.add(contact.body1Vec, contact.body2Vec)
-                        resultantVel.normalize()
-                        ball.setLinearVelocity(new Vec2(
-                            GameOptions.launchImpulse * resultantVel.x,
-                            GameOptions.launchImpulse * resultantVel.y
-                        ))
-                    }
-                })           
-            })
+        //         // add a time delay to create a new ball
+        //         this.time.addEvent({
+        //             delay: 200,
+        //             callback: () => {
+        //                 const ball = this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
+        //                 // need a function to launch the ball upon creation
+        //                 const resultantVel = Vec2.add(contact.body1Vec, contact.body2Vec)
+        //                 resultantVel.normalize()
+        //                 ball.setLinearVelocity(new Vec2(
+        //                     GameOptions.launchImpulse * resultantVel.x,
+        //                     GameOptions.launchImpulse * resultantVel.y
+        //                 ))
+        //             }
+        //         })           
+        //     })
 
-            // clear the contact management array
-            this.contactManagement = [];
-        }
+        //     // clear the contact management array
+        //     this.contactManagement = [];
+        // }
         
-        if(this.contactMangementWithVoid.length > 0) {
+        // if(this.contactMangementWithVoid.length > 0) {
 
-            this.contactMangementWithVoid.forEach((contact: any) => {
-                // add a time delay for ball destruction
-                this.time.addEvent({
-                    delay: 50,
-                    callback: () => {
-                        // destroy the balls
-                        this.swoosh = this.sound.add('swoosh', {
-                            volume: 0.5
-                        })
-                        if(this.swoosh.isPlaying) {
-                            this.swoosh.stop()
-                        }
-                        else {
-                            this.swoosh.play()
-                        }
+        //     this.contactMangementWithVoid.forEach((contact: any) => {
+        //         // add a time delay for ball destruction
+        //         this.time.addEvent({
+        //             delay: 50,
+        //             callback: () => {
+        //                 // destroy the balls
+        //                 this.swoosh = this.sound.add('swoosh', {
+        //                     volume: 0.5
+        //                 })
+        //                 if(this.swoosh.isPlaying) {
+        //                     this.swoosh.stop()
+        //                 }
+        //                 else {
+        //                     this.swoosh.play()
+        //                 }
                         
-                        this.destroyBall(contact.ball)
-                        this.updateBallsIntoVoid = this.ballsIntoVoid + 1
-                    }
-                })
-            })
-            // clear the management array
-            this.contactMangementWithVoid = []
-        }
+        //                 this.destroyBall(contact.ball)
+        //                 this.updateBallsIntoVoid = this.ballsIntoVoid + 1
+        //             }
+        //         })
+        //     })
+        //     // clear the management array
+        //     this.contactMangementWithVoid = []
+        // }
+
+        syncSpritePhysicsSys(this.world, mWorld, this)
 
         // loop thru all bodies
         // for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {

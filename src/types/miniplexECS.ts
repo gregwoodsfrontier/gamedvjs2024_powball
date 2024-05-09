@@ -1,8 +1,7 @@
 import { World as MWorld } from 'miniplex'
 import { GameObjects, Scene } from 'phaser';
-import planck, { Body, Circle, World } from 'planck';
-import PhaserPlanckSprite, { PhaserPlanckSpriteOptions } from '../phaser-planck/classes/Sprite';
-import { toMeters } from '../plankUtils';
+import { Body, Circle, World } from 'planck';
+import { toMeters, toPixels } from '../plankUtils';
 
 type Entity = {
     position: { x: number; y: number },
@@ -11,12 +10,12 @@ type Entity = {
     score?: number,
     sprite?: {
         key: string,
-        gameobj: GameObjects.Sprite
+        gameobj?: GameObjects.Sprite
     },
     audio?: string,
     role?: number,
     planck?: {
-        body: Body,
+        body?: Body,
         bodyType: "chain" | "circle",
         isStatic: false
     }
@@ -38,38 +37,51 @@ export const queries = {
 }
 
 // create ball system. decided that using plugin might make things unable to couple
-export const createBallSystem = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    for (const entity of queries.balls) {
-        const {sprite, position, size, planck} = entity
-        sprite.gameobj = _scene.add.sprite(
-            position.x,
-            position.y,
-            sprite.key
-        )
-        sprite.gameobj.setDisplaySize(size, size)
-        planck.body = _pWorld.createDynamicBody({
-            type: "dynamic",
-            bullet: true,
-            position: {
-                x: toMeters(position.x),
-                y: toMeters(position.y)
-            }
-        })
-        planck.body.createFixture({
-            shape: new Circle(toMeters(size)),
-            density : 1,
-            friction : 0.3,
-            restitution : 0.3
-        })
-        planck.body.setUserData({
-            entity: entity,
-            id: _mWorld.id(entity)
-        })
-    }
+// should not query as it would query all balls in list
+export const createBall = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {sprite, position, size, planck} = _e
+    if(!sprite || !planck || !size) return
+    sprite.gameobj = _scene.add.sprite(
+        position.x,
+        position.y,
+        sprite.key
+    )
+    sprite.gameobj.setDisplaySize(size* 10, size* 10)
+    planck.body = _pWorld.createDynamicBody({
+        type: "dynamic",
+        bullet: true,
+        position: {
+            x: toMeters(position.x),
+            y: toMeters(position.y)
+        }
+    })
+    planck.body.createFixture({
+        shape: new Circle(toMeters(size)),
+        density : 1,
+        friction : 0.3,
+        restitution : 0.3
+    })
+    planck.body.setUserData({
+        entity: _e,
+        id: _mWorld.id(_e)
+    })
 }
 
 // create physics body system
+export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    for (const entity of queries.balls) {
+        const {sprite, planck} = entity
+        if(sprite.gameobj && planck.body) {
+            sprite.gameobj?.setPosition(
+                toPixels(planck.body?.getPosition().x),
+                toPixels(planck.body?.getPosition().y),
+            )
+            const bodyAngle = planck.body?.getAngle()
+            sprite.gameobj.rotation = bodyAngle
+        }
 
+    }
+}
 // export function physicsSyncSys() {
 //     for(const entity of movingEntites){
         
