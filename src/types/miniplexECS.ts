@@ -46,7 +46,7 @@ export const createBall = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: 
         position.y,
         sprite.key
     )
-    sprite.gameobj.setDisplaySize(size* 10, size* 10)
+    sprite.gameobj.setDisplaySize(size, size)
     planck.body = _pWorld.createDynamicBody({
         type: "dynamic",
         bullet: true,
