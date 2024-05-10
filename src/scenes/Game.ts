@@ -18,7 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { ROLE_TYPE, onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated } from '../types/miniplexECS';
+import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, createBallSys, Entity } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -222,12 +222,12 @@ export class Game extends Scene
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
-        queries.balls.onEntityAdded.subscribe((entity) => {
+        queries.balls.onEntityAdded.subscribe((entity: Entity) => {
             onBallEntityCreated(entity, this.world, mWorld, this)
         })
 
         // for walls
-        queries.walls.onEntityAdded.subscribe((entity) => {
+        queries.walls.onEntityAdded.subscribe((entity: Entity) => {
             console.log("A Wall entity has been spawned:", entity)
             onWallEntityCreated(entity, this.world, mWorld, this)
         })
@@ -243,7 +243,7 @@ export class Game extends Scene
             delay: 2000,
             callback: () => {
                 this.createBall(
-                    width * Phaser.Math.Between(25, 75) / 100,
+                    width * Phaser.Math.Between(15, 25) / 100,
                     height * 0.1,
                     GameOptions.ballbodies[0].size
                 )
@@ -439,11 +439,11 @@ export class Game extends Scene
                 key: GameOptions.ballbodies[0].spriteKey
             },
             planck: {
-                bodyType: "circle",
-                isStatic: false
+                bodyType: "circle"
             },
             score: value,
-            ball: true
+            ball: true,
+            dynamic: true
         })
     }
       

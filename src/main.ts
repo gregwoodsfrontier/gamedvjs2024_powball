@@ -21,7 +21,7 @@ const config: Types.Core.GameConfig = {
         autoCenter: Scale.CENTER_BOTH
     },
     scene: [
-        Preload
+        Preload,
         GameContainer,
         
         MainMenu,

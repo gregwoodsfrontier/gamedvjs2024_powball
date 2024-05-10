@@ -4,7 +4,7 @@ import { Body, Chain, Circle, World } from 'planck';
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
 
-type Entity = {
+export type Entity = {
     position: { x: number; y: number },
     points?: { x: number; y: number }[],
     size?: number,
@@ -15,27 +15,28 @@ type Entity = {
         gameobj?: GameObjects.Sprite
     },
     audio?: string,
-    
     planck?: {
         body?: Body,
-        bodyType: "chain" | "circle",
-        isStatic: boolean
+        bodyType?: "chain" | "circle"
     },
     ball?: boolean,
     wall?: boolean,
     flippers?: boolean,
-    void?: boolean
+    void?: boolean,
+    dynamic: true
 }
 
 export const mWorld = new MWorld<Entity>()
 
 export const queries = {
     sprite: mWorld.with("sprite"),
-    physicBody: mWorld.with("planck"),
-    balls: mWorld.with("sprite", "planck", "position", "size", "ball"),
-    walls: mWorld.with("wall"),
-    flippers: mWorld.with("flippers"),
-    void: mWorld.with("void")
+    planckBodies: mWorld.with("sprite", "planck"),
+    dynamic: mWorld.with("planck", "dynamic"),
+    static: mWorld.without("planck", "dynamic"),
+    balls: mWorld.with("sprite", "position", "size", "ball"),
+    walls: mWorld.with("position", "points", "wall"),
+    flippers: mWorld.with("sprite", "position", "flippers"),
+    void: mWorld.with("sprite", "position", "void")
 }
 
 // create ball system. decided that using plugin might make things unable to couple
@@ -66,6 +67,19 @@ export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
     planck.body.setUserData({
         id: _mWorld.id(_e)
     })
+}
+
+export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {sprite, planck} = _e
+    if(!sprite || !planck) return
+    // sprite.gameobj?.setActive(false).setVisible(false)
+    sprite.gameobj?.destroy()
+    sprite.gameobj = undefined
+
+    if(planck.body) {
+        _pWorld.destroyBody(planck.body)
+        planck.body = undefined
+    }
 }
 
 // make a function to create wall in game from entities
@@ -106,14 +120,13 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
 
     _mWorld.addComponent(_e, "planck", {
         body: _body,
-        bodyType: "chain",
-        isStatic: true
+        bodyType: "chain"
     })
 }
 
 // create physics body system
 export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    for (const entity of queries.balls) {
+    for (const entity of queries.dynamic) {
         const {sprite, planck} = entity
         if(sprite.gameobj && planck.body) {
             sprite.gameobj?.setPosition(
@@ -126,8 +139,3 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
 
     }
 }
-// export function physicsSyncSys() {
-//     for(const entity of movingEntites){
-        
-//     }
-// }
