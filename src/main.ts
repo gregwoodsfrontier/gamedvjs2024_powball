@@ -6,8 +6,6 @@ import { UIScene } from './scenes/UI';
 import { GameContainer } from './scenes/GameContainer';
 import { MainMenu } from './scenes/MainMenu';
 import { Preload } from './scenes/Preload'
-import { Test } from './scenes/Test';
-import { PhaserPlanck } from './phaser-planck'
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -22,13 +20,8 @@ const config: Types.Core.GameConfig = {
         mode: Scale.FIT,
         autoCenter: Scale.CENTER_BOTH
     },
-    // uncomment the following: PIXI is undef
-    plugins: {
-        scene: [{ key: "PhaserPlanck", plugin: PhaserPlanck, mapping: "planck" }],
-    },
     scene: [
-        Preload,
-        Test,
+        Preload
         GameContainer,
         
         MainMenu,
