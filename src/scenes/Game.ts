@@ -18,7 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { ROLE_TYPE, createBall, mWorld, syncSpritePhysicsSys } from '../types/miniplexECS';
+import { ROLE_TYPE, onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -140,66 +140,9 @@ export class Game extends Scene
             this.world = World(Vec2(0, GameOptions.gravity));
         }
 
-        
-        // this.createBounds()
-
-        // this.bump = this.createPyramidBump()
-        // this.void = this.createVoidBody( width * 0.20 )
-
-        // const { pathData } = (this.wall.getUserData() as any).sprite
-
-        // if(pathData){
-
-        //     const LAnchorPt = {x: pathData[2], y: pathData[3]}
-        //     const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
-
-        //     // create point for indication
-        //     this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
-        //     this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
-
-        //     // create the flippers
-        //     this.leftFlipper = this.createFlipper(
-        //         true,
-        //         this.world,
-        //         this.wall,
-        //         pathData[2],
-        //         pathData[3],
-        //         65,
-        //         10,
-        //         -10.0 * Math.PI / 180.0,
-        //         slopeAngle
-        //     )
-
-        //     this.rightFlipper = this.createFlipper(
-        //         false,
-        //         this.world,
-        //         this.wall,
-        //         RAnchorPt.x,
-        //         RAnchorPt.y,
-        //         65,
-        //         10,
-        //         -slopeAngle,
-        //         10.0 * Math.PI / 180.0
-        //     )
-        // }
-
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
 
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-
-        // create a time event which calls createBall method every x milliseconds, looping forever
-        // this.time.addEvent({
-        //     delay : 700,
-        //     callback : () => {
-        //         if(Phaser.Math.Between(0,1) < 0.5) {
-        //             this.createBall(Phaser.Math.Between(100, width/2 -20), height * 0.05, 1);
-        //         }
-        //         else {
-        //             this.createBall(Phaser.Math.Between(width/2 + 20, width - 100), height * 0.05, 1);
-        //         }
-        //     },
-        //     loop : true
-        // });
 
         // this is the collision listener used to process contacts
         this.world.on('pre-solve', (contact : Contact)  => {
@@ -278,9 +221,15 @@ export class Game extends Scene
         });
 
         // using miniplex to spawn game objects instead of coding inside scenes
-        mWorld.onEntityAdded.subscribe((entity) => {
-            console.log("A new entity has been spawned:", entity)
-            createBall(entity, this.world, mWorld, this)
+        // for balls
+        queries.balls.onEntityAdded.subscribe((entity) => {
+            onBallEntityCreated(entity, this.world, mWorld, this)
+        })
+
+        // for walls
+        queries.walls.onEntityAdded.subscribe((entity) => {
+            console.log("A Wall entity has been spawned:", entity)
+            onWallEntityCreated(entity, this.world, mWorld, this)
         })
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -288,11 +237,7 @@ export class Game extends Scene
             this.score = 0
         })
 
-        // this.createBall(
-        //     width*0.25,
-        //     height*0.1,
-        //     GameOptions.ballbodies[0].size
-        // )
+        this.createWall()
 
         this.time.addEvent({
             delay: 2000,
@@ -304,7 +249,49 @@ export class Game extends Scene
                 )
             },
             repeat: 4
-        })        
+        })
+        
+        
+        // this.bump = this.createPyramidBump()
+        // this.void = this.createVoidBody( width * 0.20 )
+
+        // const { pathData } = (this.wall.getUserData() as any).sprite
+
+        // if(pathData){
+
+        //     const LAnchorPt = {x: pathData[2], y: pathData[3]}
+        //     const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
+
+        //     // create point for indication
+        //     this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
+        //     this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
+
+        //     // create the flippers
+        //     this.leftFlipper = this.createFlipper(
+        //         true,
+        //         this.world,
+        //         this.wall,
+        //         pathData[2],
+        //         pathData[3],
+        //         65,
+        //         10,
+        //         -10.0 * Math.PI / 180.0,
+        //         slopeAngle
+        //     )
+
+        //     this.rightFlipper = this.createFlipper(
+        //         false,
+        //         this.world,
+        //         this.wall,
+        //         RAnchorPt.x,
+        //         RAnchorPt.y,
+        //         65,
+        //         10,
+        //         -slopeAngle,
+        //         10.0 * Math.PI / 180.0
+        //     )
+        // }
+
     }
 
     set updateBallsIntoVoid(_newValue: number) {
@@ -432,75 +419,12 @@ export class Game extends Scene
         return body
     }
 
-    // method to create the bounds of the pin ball
-    createBounds() {
-        const wallWidth = 10
-        
-        const {width, height} = this.scale;
-
-        const slopeW = width * 0.20
-        const slopeH = 25 + 10
-        
-        const wallPts = [
-            wallWidth + slopeW, height,
-            wallWidth + slopeW, height * 0.75 + slopeH,
-            wallWidth, height * 0.75,
-            wallWidth, wallWidth,
-            width - wallWidth, wallWidth,
-            width - wallWidth, height * 0.75,
-            width - wallWidth, height * 0.75, 
-            width - wallWidth - slopeW, height * 0.75  + slopeH,
-            width - wallWidth - slopeW, height,
-        ]
-
-        // for the bounding walls
-        const SPRITE = this.add.polygon(
-            0,
-            0,
-            wallPts
-        ).setStrokeStyle(5, 0xff9a00)
-        .setClosePath(false)
-        .setOrigin(0,0)
-
-        // creating planck body for wall
-        const body = this.createChainFixture(
-            this.world,
-            wallPts,
-            SPRITE
-        )
-
-        const fixture = body.getFixtureList()
-
-        const entity = mWorld.add({
-            position: {
-                x: 0,
-                y: 0
-            },
-            role: ROLE_TYPE.WALL,
-            sprite: SPRITE,
-            pBody: body,
-            isStatic: true
+    createWall() {
+        mWorld.add({
+            position: {x: 0, y: 0},
+            wall: true,
+            points: GameOptions.boundingPoints.wall,
         })
-
-        if (fixture) {
-            mWorld.addComponent(entity, "pFixture", fixture)
-        }
-
-        console.log(entity)
-
-    }
-
-    createChainFixture(_world: World, _points: number[], _sprite: Phaser.GameObjects.Polygon) {
-        const worldPoints = []
-        for(let i = 0; i < _points.length / 2; i++) {
-            worldPoints.push(Vec2(toMeters(_points[i*2] as number), toMeters(_points[i*2+1] as number)))
-        }
-        const body = _world.createBody()
-        body.createFixture({
-            shape: Chain(worldPoints, false)
-        })
-
-        return body
     }
 
     // method to create a ball
@@ -518,23 +442,8 @@ export class Game extends Scene
                 bodyType: "circle",
                 isStatic: false
             },
-            score: value
-        })
-    }
-
-    // method to create a wall
-    createWall(posX : number, posY : number, width : number, height : number) : void {
-        const rectangle : Phaser.GameObjects.Rectangle = this.add.rectangle(posX, posY, width * 2, height * 2, 0xffffff);
-        const floor : Body = this.world.createBody({
-            position : new Vec2(toMeters(posX), toMeters(posY))
-        });
-        floor.createFixture({
-            shape : new Box(toMeters(width), toMeters(height)),
-            filterGroupIndex : 1
-        })
-        floor.setUserData({
-            sprite : rectangle,
-            type : bodyType.Wall
+            score: value,
+            ball: true
         })
     }
       

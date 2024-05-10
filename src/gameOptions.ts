@@ -36,5 +36,26 @@ export const GameOptions = {
     blastImpulse : 2,
 
     // launch force applied when a new ball is created
-    launchImpulse: 4
+    launchImpulse: 4,
+
+    // points for the bounding wall. with x based on scale width and y based on scale height
+    boundingPoints: {
+        wall: [
+            {x: 0.2167, y: 1.1},
+            {x: 0.2167, y: 0.79375},
+            {x: 0.0167, y: 0.75},
+            {x: 0.01667, y: 0.0125},
+            {x: 0.9833, y: 0.0125},
+            {x: .9833, y: 0.75},
+            {x: 0.9833, y: 0.75},
+            {x: 0.7833, y: 0.79375},
+            {x: 0.7833, y: 1.1}
+        ]
+    },
+
+    // wall color
+    wallColor: 0xff9a00,
+
+    // wall line stroke width
+    wallStrokeWidth: 5
 }
