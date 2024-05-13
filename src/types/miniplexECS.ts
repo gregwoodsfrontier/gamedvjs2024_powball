@@ -1,10 +1,10 @@
 import { World as MWorld } from 'miniplex'
 import { GameObjects, Scene } from 'phaser';
-import { Body, Chain, Circle, World } from 'planck';
+import planck, { Body, Box, Chain, Circle, RevoluteJoint, World } from 'planck';
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
 
-type Entity = {
+export type Entity = {
     position: { x: number; y: number },
     points?: { x: number; y: number }[],
     size?: number,
@@ -15,15 +15,23 @@ type Entity = {
         gameobj?: GameObjects.Sprite
     },
     audio?: string,
-    
     planck?: {
         body?: Body,
-        bodyType: "chain" | "circle",
+        bodyType?: "chain" | "circle",
         isStatic: boolean
     },
     ball?: boolean,
     wall?: boolean,
-    flippers?: boolean,
+    flippers?: {
+        side: "left" | "right",
+        width: number,
+        height: number,
+        color?: number,
+        anchorPoint: {
+            x: number,
+            y: number
+        }
+    },
     void?: boolean
 }
 
@@ -34,8 +42,9 @@ export const queries = {
     physicBody: mWorld.with("planck"),
     balls: mWorld.with("sprite", "planck", "position", "size", "ball"),
     walls: mWorld.with("wall"),
-    flippers: mWorld.with("flippers"),
-    void: mWorld.with("void")
+    flippers: mWorld.with("flippers", "planck", "position"),
+    void: mWorld.with("void"),
+    flipperShape: mWorld.with("flippers", "planck", "position", "renderShape")
 }
 
 // create ball system. decided that using plugin might make things unable to couple
@@ -111,6 +120,89 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
     })
 }
 
+// function that create flippers based on subscription
+export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {position, planck, flippers} = _e
+
+    if(!flippers) return
+
+    const shape = _scene.add.rectangle(
+        position.x,
+        position.y,
+        flippers?.width * 2,
+        flippers?.height * 2,
+        flippers?.color
+    )   
+
+    // if(flippers.side === "left") {
+    //     shape.setOrigin(0, 0)
+    // } else {
+    //     shape.setOrigin(1, 0)
+    // }
+
+    const jointData = {
+        enableMotor: true,
+        enableLimit: true,
+        maxMotorTorque: 7500.0,
+        motorSpeed: 0.0,
+        lowerAngle: 0,
+        upperAngle: 0
+    }
+
+    if (flippers.side === "left") {
+        jointData.lowerAngle = GameOptions.flipperConfig.left.lowAngle
+        jointData.upperAngle = GameOptions.flipperConfig.left.highAngle
+    } else if (flippers.side === "right") {
+        jointData.lowerAngle = GameOptions.flipperConfig.right.lowAngle
+        jointData.upperAngle = GameOptions.flipperConfig.right.highAngle
+    }
+
+    const deltaX = flippers.side === "left"? flippers.width : -flippers.width
+
+    console.warn(deltaX)
+
+    const body = _pWorld.createDynamicBody({
+        position: {
+            x: toMeters(position.x + deltaX),
+            y: toMeters(position.y +  + flippers.height)
+        }
+    })
+
+    body.createFixture({
+        shape: Box(
+            toMeters(flippers.width),
+            toMeters(flippers.height)
+        ),
+        density: 1
+    })
+
+    body.setUserData({
+        id: _mWorld.id(_e)
+    })
+
+    const wall = queries.walls.entities[0]
+    if(wall.planck?.body) {
+        const revoluteJoint = RevoluteJoint(
+            jointData,
+            body,
+            wall.planck.body,
+            {
+                x: toMeters(flippers.anchorPoint.x),
+                y: toMeters(flippers.anchorPoint.y)
+            }
+        )
+
+        _pWorld.createJoint(revoluteJoint)
+    }
+
+    _mWorld.addComponent(_e, "renderShape", shape)
+
+    if(planck) {
+        planck.body = body
+    }
+    
+}
+
 // create physics body system
 export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     for (const entity of queries.balls) {
@@ -123,7 +215,17 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
             const bodyAngle = planck.body?.getAngle()
             sprite.gameobj.rotation = bodyAngle
         }
+    }
 
+    for (const entity of queries.flipperShape) {
+        if(entity.planck.body) {
+            entity.renderShape.setPosition(
+                toPixels(entity.planck.body?.getPosition().x),
+                toPixels(entity.planck.body?.getPosition().y),
+            )
+            const bodyAngle = entity.planck.body?.getAngle()
+            entity.renderShape.rotation = bodyAngle
+        }
     }
 }
 // export function physicsSyncSys() {

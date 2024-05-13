@@ -18,7 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { ROLE_TYPE, onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated } from '../types/miniplexECS';
+import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -99,6 +99,8 @@ export class Game extends Scene
         const slopeW = width * 0.2
         const slopeH = 25
         const slopeAngle = Math.atan(slopeH/slopeW)
+
+        console.log(slopeAngle)
 
         // initialize global variables
         this.ids = [];
@@ -228,8 +230,18 @@ export class Game extends Scene
 
         // for walls
         queries.walls.onEntityAdded.subscribe((entity) => {
-            console.log("A Wall entity has been spawned:", entity)
+            if(import.meta.env.DEV) {
+                console.log("A Wall entity has been spawned:", entity)
+            }
             onWallEntityCreated(entity, this.world, mWorld, this)
+        })
+
+        // subscription to flippers entity creation
+        queries.flippers.onEntityAdded.subscribe((entity) => {
+            if(import.meta.env.DEV) {
+                console.log("Flipper entity is created: ", entity)
+            }
+            onFlipperEntityCreated(entity, this.world, mWorld, this)
         })
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -239,16 +251,17 @@ export class Game extends Scene
 
         this.createWall()
 
+        this.createFlippers()
+
         this.time.addEvent({
-            delay: 2000,
+            delay: 100,
             callback: () => {
                 this.createBall(
-                    width * Phaser.Math.Between(25, 75) / 100,
-                    height * 0.1,
-                    GameOptions.ballbodies[0].size
+                    width * Phaser.Math.Between(15, 30) / 100,
+                    height * 0.1                    
                 )
             },
-            repeat: 4
+            repeat: 30
         })
         
         
@@ -326,51 +339,89 @@ export class Game extends Scene
     }
 
     // Create a flipper based on world, position, angle lower limit and higher limit
-    createFlipper(
-        isLeft: boolean, _world: World, _wall: Body, 
-        anchorX: number, anchorY: number, 
-        widthInPx: number, heightInPx: number, 
-        lowAngle: number, highAngle: number
-    ) {
-        const rect = this.add.rectangle(
-            0,
-            0,
-            widthInPx * 2,
-            heightInPx * 2,
-            0x00ecff
-        )
+    // createFlipper(
+    //     isLeft: boolean, _world: World, _wall: Body, 
+    //     anchorX: number, anchorY: number, 
+    //     widthInPx: number, heightInPx: number, 
+    //     lowAngle: number, highAngle: number
+    // ) {
+    //     const rect = this.add.rectangle(
+    //         0,
+    //         0,
+    //         widthInPx * 2,
+    //         heightInPx * 2,
+    //         0x00ecff
+    //     )
         
-        const jointData = {
-            enableMotor: true,
-            enableLimit: true,
-            maxMotorTorque: 7500.0,
-            motorSpeed: 0.0,
-            lowerAngle: lowAngle,
-            upperAngle: highAngle
+    //     const jointData = {
+    //         enableMotor: true,
+    //         enableLimit: true,
+    //         maxMotorTorque: 7500.0,
+    //         motorSpeed: 0.0,
+    //         lowerAngle: lowAngle,
+    //         upperAngle: highAngle
+    //     }
+
+    //     let deltaXInPx = isLeft ? widthInPx : -widthInPx
+
+    //     const flipper = _world.createDynamicBody({
+    //         position : Vec2(toMeters(anchorX + deltaXInPx), toMeters(anchorY + heightInPx))
+    //     })
+
+    //     flipper.createFixture({
+    //         shape: Box(toMeters(widthInPx), toMeters(heightInPx)),
+    //         density: 1
+    //     })
+
+    //     flipper.setUserData({
+    //         sprite: rect,
+    //         type: bodyType.Flipper
+    //     })
+
+    //     const joint = RevoluteJoint(jointData, _wall, flipper, Vec2(
+    //         toMeters(anchorX), toMeters(anchorY)
+    //     ))
+    //     _world.createJoint(joint)
+
+    //     return joint
+    // }
+    createFlippers() {
+        const {width, height} = this.scale
+        const leftAnchor = {
+            x: GameOptions.boundingPoints.wall[1].x * width,
+            y: GameOptions.boundingPoints.wall[1].y * height
         }
-
-        let deltaXInPx = isLeft ? widthInPx : -widthInPx
-
-        const flipper = _world.createDynamicBody({
-            position : Vec2(toMeters(anchorX + deltaXInPx), toMeters(anchorY + heightInPx))
+        const rightAnchor = {
+            x: GameOptions.boundingPoints.wall[GameOptions.boundingPoints.wall.length-2].x * width,
+            y: GameOptions.boundingPoints.wall[GameOptions.boundingPoints.wall.length-2].y * height
+        }
+        mWorld.add({
+            position: leftAnchor,
+            flippers: {
+                side: "left",
+                width: 65,
+                height: 10,
+                color: 0x00ecff,
+                anchorPoint: leftAnchor
+            },
+            planck: {
+                isStatic: false
+            }
         })
 
-        flipper.createFixture({
-            shape: Box(toMeters(widthInPx), toMeters(heightInPx)),
-            density: 1
+        mWorld.add({
+            position: rightAnchor,
+            flippers: {
+                side: "right",
+                width: 65,
+                height: 10,
+                color: 0x00ecff,
+                anchorPoint: rightAnchor
+            },
+            planck: {
+                isStatic: false
+            }
         })
-
-        flipper.setUserData({
-            sprite: rect,
-            type: bodyType.Flipper
-        })
-
-        const joint = RevoluteJoint(jointData, _wall, flipper, Vec2(
-            toMeters(anchorX), toMeters(anchorY)
-        ))
-        _world.createJoint(joint)
-
-        return joint
     }
 
     createPyramidBump() {
@@ -428,7 +479,7 @@ export class Game extends Scene
     }
 
     // method to create a ball
-    createBall(posX : number, posY : number, value : number) {
+    createBall(posX : number, posY : number) {
         mWorld.add({
             position: {
                 x: posX,
@@ -442,17 +493,9 @@ export class Game extends Scene
                 bodyType: "circle",
                 isStatic: false
             },
-            score: value,
+            score: GameOptions.ballbodies[0].size,
             ball: true
         })
-    }
-      
-    // method to destroy a ball
-    destroyBall(ball : Body) : void {
-        const userData : any = ball.getUserData();
-        userData.sprite.destroy();
-        this.world.destroyBody(ball); 
-        this.ids.splice(this.ids.indexOf(userData.id), 1);    
     }
 
     set setScore(_score: number) {

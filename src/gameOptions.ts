@@ -57,5 +57,17 @@ export const GameOptions = {
     wallColor: 0xff9a00,
 
     // wall line stroke width
-    wallStrokeWidth: 5
+    wallStrokeWidth: 5,
+
+    //flipper config
+    flipperConfig: {
+        left: {
+            lowAngle: -10.0 * Math.PI / 180.0,
+            highAngle: 0.20539
+        },
+        right : {
+            lowAngle: -0.20539,
+            highAngle: 10.0 * Math.PI / 180.0
+        }
+    }
 }
