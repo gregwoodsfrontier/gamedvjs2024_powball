@@ -224,7 +224,7 @@ export class Game extends Scene
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
-        queries.balls.onEntityAdded.subscribe((entity: Entity) => {
+        queries.balls.onEntityAdded.subscribe((entity) => {
             onBallEntityCreated(entity, this.world, mWorld, this)
         })
 
@@ -257,11 +257,11 @@ export class Game extends Scene
             delay: 100,
             callback: () => {
                 this.createBall(
-                    width * Phaser.Math.Between(15, 30) / 100,
+                    width * Phaser.Math.Between(35, 65) / 100,
                     height * 0.1                    
                 )
             },
-            repeat: 30
+            repeat: 100
         })
         
         
@@ -387,6 +387,8 @@ export class Game extends Scene
     // }
     createFlippers() {
         const {width, height} = this.scale
+        const flipperW = 65
+        const flipperH = 10
         const leftAnchor = {
             x: GameOptions.boundingPoints.wall[1].x * width,
             y: GameOptions.boundingPoints.wall[1].y * height
@@ -396,11 +398,14 @@ export class Game extends Scene
             y: GameOptions.boundingPoints.wall[GameOptions.boundingPoints.wall.length-2].y * height
         }
         mWorld.add({
-            position: leftAnchor,
+            position: {
+                x: leftAnchor.x + flipperW,
+                y: leftAnchor.y + flipperH
+            },
             flippers: {
                 side: "left",
-                width: 65,
-                height: 10,
+                width: flipperW,
+                height: flipperH,
                 color: 0x00ecff,
                 anchorPoint: leftAnchor
             },
@@ -410,11 +415,14 @@ export class Game extends Scene
         })
 
         mWorld.add({
-            position: rightAnchor,
+            position: {
+                x: rightAnchor.x - flipperW,
+                y: rightAnchor.y + flipperH
+            },
             flippers: {
                 side: "right",
-                width: 65,
-                height: 10,
+                width: flipperW,
+                height: flipperH,
                 color: 0x00ecff,
                 anchorPoint: rightAnchor
             },

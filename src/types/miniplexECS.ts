@@ -146,12 +146,6 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         flippers?.color
     )   
 
-    // if(flippers.side === "left") {
-    //     shape.setOrigin(0, 0)
-    // } else {
-    //     shape.setOrigin(1, 0)
-    // }
-
     const jointData = {
         enableMotor: true,
         enableLimit: true,
@@ -169,14 +163,10 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         jointData.upperAngle = GameOptions.flipperConfig.right.highAngle
     }
 
-    const deltaX = flippers.side === "left"? flippers.width : -flippers.width
-
-    console.warn(deltaX)
-
     const body = _pWorld.createDynamicBody({
         position: {
-            x: toMeters(position.x + deltaX),
-            y: toMeters(position.y +  + flippers.height)
+            x: toMeters(position.x),
+            y: toMeters(position.y)
         }
     })
 
@@ -217,7 +207,7 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
 
 // create physics body system
 export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    for (const entity of queries.dynamic) {
+    for (const entity of queries.balls) {
         const {sprite, planck} = entity
         if(sprite.gameobj && planck.body) {
             sprite.gameobj?.setPosition(
