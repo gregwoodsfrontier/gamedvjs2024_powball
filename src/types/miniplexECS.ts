@@ -77,6 +77,19 @@ export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
     })
 }
 
+export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {sprite, planck} = _e
+    if(!sprite || !planck) return
+    // sprite.gameobj?.setActive(false).setVisible(false)
+    sprite.gameobj?.destroy()
+    sprite.gameobj = undefined
+
+    if(planck.body) {
+        _pWorld.destroyBody(planck.body)
+        planck.body = undefined
+    }
+}
+
 // make a function to create wall in game from entities
 export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     const {position, points} = _e
@@ -115,8 +128,7 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
 
     _mWorld.addComponent(_e, "planck", {
         body: _body,
-        bodyType: "chain",
-        isStatic: true
+        bodyType: "chain"
     })
 }
 
@@ -205,7 +217,7 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
 
 // create physics body system
 export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    for (const entity of queries.balls) {
+    for (const entity of queries.dynamic) {
         const {sprite, planck} = entity
         if(sprite.gameobj && planck.body) {
             sprite.gameobj?.setPosition(
@@ -228,8 +240,3 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
         }
     }
 }
-// export function physicsSyncSys() {
-//     for(const entity of movingEntites){
-        
-//     }
-// }

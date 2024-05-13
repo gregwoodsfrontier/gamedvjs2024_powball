@@ -224,7 +224,7 @@ export class Game extends Scene
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
-        queries.balls.onEntityAdded.subscribe((entity) => {
+        queries.balls.onEntityAdded.subscribe((entity: Entity) => {
             onBallEntityCreated(entity, this.world, mWorld, this)
         })
 
@@ -490,8 +490,7 @@ export class Game extends Scene
                 key: GameOptions.ballbodies[0].spriteKey
             },
             planck: {
-                bodyType: "circle",
-                isStatic: false
+                bodyType: "circle"
             },
             score: GameOptions.ballbodies[0].size,
             ball: true
