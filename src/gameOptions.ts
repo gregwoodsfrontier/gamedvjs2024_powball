@@ -50,6 +50,11 @@ export const GameOptions = {
             {x: 0.9833, y: 0.75},
             {x: 0.7833, y: 0.79375},
             {x: 0.7833, y: 1.1}
+        ],
+        bump: [
+            {x: 0.1667, y: 0.3},
+            {x: 0.5   , y: 0.11250},
+            {x: 0.8333, y: 0.3},
         ]
     },
 
@@ -63,11 +68,15 @@ export const GameOptions = {
     flipperConfig: {
         left: {
             lowAngle: -10.0 * Math.PI / 180.0,
-            highAngle: 0.20539
+            highAngle: 0.20539,
+            activateSpeed: 30,
+            releaseSpeed: 5
         },
         right : {
             lowAngle: -0.20539,
-            highAngle: 10.0 * Math.PI / 180.0
+            highAngle: 10.0 * Math.PI / 180.0,
+            activateSpeed: 30,
+            releaseSpeed: 5
         }
     }
 }

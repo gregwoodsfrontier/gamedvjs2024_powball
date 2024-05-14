@@ -17,8 +17,8 @@ export type Entity = {
     audio?: string,
     planck?: {
         body?: Body,
-        bodyType?: "chain" | "circle",
-        isStatic: boolean
+        bodyType?: "chain" | "circle"
+        isStatic?: boolean
     },
     ball?: boolean,
     wall?: boolean,
@@ -32,7 +32,9 @@ export type Entity = {
             y: number
         }
     },
+    motorSpeed?: number,
     void?: boolean
+    planckRevolute?: RevoluteJoint
 }
 
 export const mWorld = new MWorld<Entity>()
@@ -44,7 +46,10 @@ export const queries = {
     walls: mWorld.with("wall"),
     flippers: mWorld.with("flippers", "planck", "position"),
     void: mWorld.with("void"),
-    flipperShape: mWorld.with("flippers", "planck", "position", "renderShape")
+    flipperShape: mWorld.with("flippers", "planck", "position", "renderShape"),
+    isFlippable: mWorld.with("motorSpeed", "planckRevolute"),
+    leftFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "left"),
+    rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right")
 }
 
 // create ball system. decided that using plugin might make things unable to couple
@@ -57,7 +62,7 @@ export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
         position.y,
         sprite.key
     )
-    sprite.gameobj.setDisplaySize(size, size)
+    sprite.gameobj.setDisplaySize(size*2, size*2)
     planck.body = _pWorld.createDynamicBody({
         type: "dynamic",
         bullet: true,
@@ -112,7 +117,9 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
 
     _mWorld.addComponent(_e, "renderShape", shape)
 
-    const _body = _pWorld.createBody()
+    const _body = _pWorld.createBody({
+        type: "static"
+    })
     const planckCord = renderCord.map(value => {
         return {
             x: toMeters(value.x),
@@ -167,7 +174,8 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         position: {
             x: toMeters(position.x),
             y: toMeters(position.y)
-        }
+        },
+        type: "dynamic"
     })
 
     body.createFixture({
@@ -183,7 +191,7 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
     })
 
     const wall = queries.walls.entities[0]
-    if(wall.planck?.body) {
+    if(wall.planck?.body && planck) {
         const revoluteJoint = RevoluteJoint(
             jointData,
             body,
@@ -195,6 +203,8 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         )
 
         _pWorld.createJoint(revoluteJoint)
+
+        mWorld.addComponent(_e, "planckRevolute", revoluteJoint)
     }
 
     _mWorld.addComponent(_e, "renderShape", shape)
@@ -202,7 +212,17 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
     if(planck) {
         planck.body = body
     }
-    
+
+    mWorld.addComponent(_e, "motorSpeed", 0)
+}
+
+// controls the flipper joint motor speed
+export const flippablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    for (const entity of queries.isFlippable) {
+        const {motorSpeed, planckRevolute} = entity
+
+        planckRevolute.setMotorSpeed(motorSpeed)
+    }
 }
 
 // create physics body system

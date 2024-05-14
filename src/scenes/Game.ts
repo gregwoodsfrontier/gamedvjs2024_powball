@@ -18,7 +18,7 @@ import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated } from '../types/miniplexECS';
+import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys } from '../types/miniplexECS';
 
 enum bodyType {
     Ball,
@@ -265,7 +265,7 @@ export class Game extends Scene
         })
         
         
-        // this.bump = this.createPyramidBump()
+        // console.log("bump", this.createPyramidBump())
         // this.void = this.createVoidBody( width * 0.20 )
 
         // const { pathData } = (this.wall.getUserData() as any).sprite
@@ -435,54 +435,64 @@ export class Game extends Scene
     createPyramidBump() {
         const {width, height} = this.scale;
         const points = [
-            width*0.5 - 200 , height*0.3,
-            width*0.5       , height*0.3 - 150,
-            width*0.5 + 200 , height*0.3
+
+            0.5 - 200/width , 0.3,
+            0.5       , 0.3 - 150/height,
+            0.5 + 200/width , 0.3
         ]
 
-        const shape = this.add.polygon(
-            0,
-            0,
-            points
-        ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
+        return points
 
-        const body = this.createChainFixture(
-            this.world,
-            points,
-            shape
-        )
+        // const shape = this.add.polygon(
+        //     0,
+        //     0,
+        //     points
+        // ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
 
-        return body
+        // const body = this.createChainFixture(
+        //     this.world,
+        //     points,
+        //     shape
+        // )
+
+        // return body
     }
 
-    createVoidBody(_slopeW: number) {
-        const wallWidth = 10
-        const {width, height} = this.scale;
+    // createVoidBody(_slopeW: number) {
+    //     const wallWidth = 10
+    //     const {width, height} = this.scale;
         
-        // despawn ground
-        const dg = this.add.polygon( 
-            0,
-            0,
-            [
-                wallWidth + _slopeW, height - 60,
-                width - wallWidth - _slopeW, height - 60
-            ]
-        ).setStrokeStyle(5, 0x0ff00ff).setOrigin(0,0).setClosePath(false)
+    //     // despawn ground
+    //     const dg = this.add.polygon( 
+    //         0,
+    //         0,
+    //         [
+    //             wallWidth + _slopeW, height - 60,
+    //             width - wallWidth - _slopeW, height - 60
+    //         ]
+    //     ).setStrokeStyle(5, 0x0ff00ff).setOrigin(0,0).setClosePath(false)
 
-        const body = this.createChainFixture(
-            this.world,
-            dg.pathData,
-            dg
-        )
+    //     const body = this.createChainFixture(
+    //         this.world,
+    //         dg.pathData,
+    //         dg
+    //     )
 
-        return body
-    }
+    //     return body
+    // }
 
     createWall() {
         mWorld.add({
             position: {x: 0, y: 0},
             wall: true,
             points: GameOptions.boundingPoints.wall,
+        })
+
+        // make the pyramid bump
+        mWorld.add({
+            position: {x: 0, y: 0},
+            wall: true,
+            points: GameOptions.boundingPoints.bump,
         })
     }
 
@@ -498,7 +508,7 @@ export class Game extends Scene
                 key: GameOptions.ballbodies[0].spriteKey
             },
             planck: {
-                bodyType: "circle"
+                bodyType: "circle",
             },
             score: GameOptions.ballbodies[0].size,
             ball: true
@@ -633,6 +643,7 @@ export class Game extends Scene
         // }
 
         syncSpritePhysicsSys(this.world, mWorld, this)
+        flippablesSys(this.world, mWorld, this)
 
         // loop thru all bodies
         // for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
@@ -687,24 +698,22 @@ export class Game extends Scene
             this.sound.add('flip-right').play()
         }
 
+        const leftFlipper = queries.leftFlip.entities[0]
+        const rightFlipper = queries.rightFlip.entities[0]
+
         // "A" key is for left flipper input
-        if (this.leftFlipper) {
-            if(this.AKey?.isDown) {
-                this.leftFlipper.setMotorSpeed(-30.0)
-            }
-            else {
-                this.leftFlipper.setMotorSpeed(5.0)
-            }
+        if(this.AKey?.isDown) {
+            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
+        } else {
+            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
         }
-        
+
         // "D" key is for left flipper input
-        if (this.rightFlipper) {
-            if(this.DKey?.isDown) {
-                this.rightFlipper.setMotorSpeed(30.0)
-            }
-            else {
-                this.rightFlipper.setMotorSpeed(-5.0)
-            }
+        if(this.DKey?.isDown) {
+            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
+        }
+        else {
+            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.activateSpeed
         }
 
         // update score text every update frame
