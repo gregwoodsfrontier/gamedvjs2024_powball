@@ -52,8 +52,6 @@ export const queries = {
     rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right")
 }
 
-// create ball system. decided that using plugin might make things unable to couple
-// should not query as it would query all balls in list
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     const {sprite, position, size, planck} = _e
     if(!sprite || !planck || !size) return
@@ -112,6 +110,50 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
         position.y,
         renderCord
     ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
+    .setOrigin(0, 0)
+    .setClosePath(false)
+
+    _mWorld.addComponent(_e, "renderShape", shape)
+
+    const _body = _pWorld.createBody({
+        type: "static"
+    })
+    const planckCord = renderCord.map(value => {
+        return {
+            x: toMeters(value.x),
+            y: toMeters(value.y)
+        }
+    })
+    _body.createFixture({
+        shape: Chain(planckCord, false)
+    })
+    _body.setUserData({
+        id: _mWorld.id(_e)
+    })
+
+    _mWorld.addComponent(_e, "planck", {
+        body: _body,
+        bodyType: "chain"
+    })
+}
+
+// make a function to create a void (ball despawner) in game from entities
+export const onVoidEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {position, points} = _e
+    if(!points || !position) return
+
+    const renderCord = points.map(value => {
+        return {
+            x: value.x * _scene.scale.width,
+            y: value.y * _scene.scale.height
+        }
+    })
+    
+    const shape = _scene.add.polygon(
+        position.x,
+        position.y,
+        renderCord
+    ).setStrokeStyle(GameOptions.wallStrokeWidth, 0x0ff00ff)
     .setOrigin(0, 0)
     .setClosePath(false)
 

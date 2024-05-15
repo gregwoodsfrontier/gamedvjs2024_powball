@@ -14,19 +14,11 @@ import {
 } from 'planck';
 import { Scene, GameObjects } from 'phaser';
 import { GameOptions } from '../gameOptions';
-import { toMeters, toPixels } from '../plankUtils';
+// import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys } from '../types/miniplexECS';
-
-enum bodyType {
-    Ball,
-    Wall,
-    Flipper,
-    Void,
-    Player
-}
+import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys, onVoidEntityCreated } from '../types/miniplexECS';
 
 type ContactManagementDataType = {
     body1 : Body,
@@ -230,10 +222,12 @@ export class Game extends Scene
 
         // for walls
         queries.walls.onEntityAdded.subscribe((entity) => {
-            if(import.meta.env.DEV) {
-                console.log("A Wall entity has been spawned:", entity)
-            }
             onWallEntityCreated(entity, this.world, mWorld, this)
+        })
+
+        // for void
+        queries.void.onEntityAdded.subscribe((entity) => {
+            onVoidEntityCreated(entity, this.world, mWorld, this)
         })
 
         // subscription to flippers entity creation
@@ -253,6 +247,8 @@ export class Game extends Scene
 
         this.createFlippers()
 
+        this.createVoid()
+
         this.time.addEvent({
             delay: 100,
             callback: () => {
@@ -264,47 +260,6 @@ export class Game extends Scene
             repeat: 100
         })
         
-        
-        // console.log("bump", this.createPyramidBump())
-        // this.void = this.createVoidBody( width * 0.20 )
-
-        // const { pathData } = (this.wall.getUserData() as any).sprite
-
-        // if(pathData){
-
-        //     const LAnchorPt = {x: pathData[2], y: pathData[3]}
-        //     const RAnchorPt = {x: pathData[pathData.length - 4], y: pathData[pathData.length - 5]}
-
-        //     // create point for indication
-        //     this.add.circle(LAnchorPt.x, LAnchorPt.y, 10, 0xffffff)
-        //     this.add.circle(RAnchorPt.x, RAnchorPt.y, 10, 0xffffff)
-
-        //     // create the flippers
-        //     this.leftFlipper = this.createFlipper(
-        //         true,
-        //         this.world,
-        //         this.wall,
-        //         pathData[2],
-        //         pathData[3],
-        //         65,
-        //         10,
-        //         -10.0 * Math.PI / 180.0,
-        //         slopeAngle
-        //     )
-
-        //     this.rightFlipper = this.createFlipper(
-        //         false,
-        //         this.world,
-        //         this.wall,
-        //         RAnchorPt.x,
-        //         RAnchorPt.y,
-        //         65,
-        //         10,
-        //         -slopeAngle,
-        //         10.0 * Math.PI / 180.0
-        //     )
-        // }
-
     }
 
     set updateBallsIntoVoid(_newValue: number) {
@@ -338,53 +293,16 @@ export class Game extends Scene
         }
     }
 
-    // Create a flipper based on world, position, angle lower limit and higher limit
-    // createFlipper(
-    //     isLeft: boolean, _world: World, _wall: Body, 
-    //     anchorX: number, anchorY: number, 
-    //     widthInPx: number, heightInPx: number, 
-    //     lowAngle: number, highAngle: number
-    // ) {
-    //     const rect = this.add.rectangle(
-    //         0,
-    //         0,
-    //         widthInPx * 2,
-    //         heightInPx * 2,
-    //         0x00ecff
-    //     )
-        
-    //     const jointData = {
-    //         enableMotor: true,
-    //         enableLimit: true,
-    //         maxMotorTorque: 7500.0,
-    //         motorSpeed: 0.0,
-    //         lowerAngle: lowAngle,
-    //         upperAngle: highAngle
-    //     }
+    createVoid() {
+        mWorld.add({
+            position: {
+                x: 0, y: 0
+            },
+            points: GameOptions.boundingPoints.void,
+            void: true
+        })
+    }
 
-    //     let deltaXInPx = isLeft ? widthInPx : -widthInPx
-
-    //     const flipper = _world.createDynamicBody({
-    //         position : Vec2(toMeters(anchorX + deltaXInPx), toMeters(anchorY + heightInPx))
-    //     })
-
-    //     flipper.createFixture({
-    //         shape: Box(toMeters(widthInPx), toMeters(heightInPx)),
-    //         density: 1
-    //     })
-
-    //     flipper.setUserData({
-    //         sprite: rect,
-    //         type: bodyType.Flipper
-    //     })
-
-    //     const joint = RevoluteJoint(jointData, _wall, flipper, Vec2(
-    //         toMeters(anchorX), toMeters(anchorY)
-    //     ))
-    //     _world.createJoint(joint)
-
-    //     return joint
-    // }
     createFlippers() {
         const {width, height} = this.scale
         const flipperW = 65
@@ -430,32 +348,6 @@ export class Game extends Scene
                 isStatic: false
             }
         })
-    }
-
-    createPyramidBump() {
-        const {width, height} = this.scale;
-        const points = [
-
-            0.5 - 200/width , 0.3,
-            0.5       , 0.3 - 150/height,
-            0.5 + 200/width , 0.3
-        ]
-
-        return points
-
-        // const shape = this.add.polygon(
-        //     0,
-        //     0,
-        //     points
-        // ).setStrokeStyle(5, 0xff9a00).setClosePath(false).setOrigin(0,0)
-
-        // const body = this.createChainFixture(
-        //     this.world,
-        //     points,
-        //     shape
-        // )
-
-        // return body
     }
 
     // createVoidBody(_slopeW: number) {
