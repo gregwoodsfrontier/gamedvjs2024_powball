@@ -1,12 +1,18 @@
 import { World as MWorld } from 'miniplex'
 import { GameObjects, Scene } from 'phaser';
-import planck, { Body, Box, Chain, Circle, RevoluteJoint, World } from 'planck';
+import { Body, Box, Chain, Circle, RevoluteJoint, World } from 'planck';
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
 
+export type BodyUserData = {
+    id: number
+}
+
 export type Entity = {
-    position: { x: number; y: number },
+    position?: { x: number; y: number },
     points?: { x: number; y: number }[],
+    // tag for flagging balls queued for spawning big balls
+    queued?: true,
     size?: number,
     score?: number,
     renderShape?: GameObjects.Shape,
@@ -34,14 +40,20 @@ export type Entity = {
     },
     motorSpeed?: number,
     void?: boolean
-    planckRevolute?: RevoluteJoint
+    planckRevolute?: RevoluteJoint,
+    // for contact data
+    contactPoint?: {
+        x: number; y: number
+    },
+    contactEntityA?: Entity,
+    contactEntityB?: Entity,
+    contactType?: 'ball2' | 'ballVoid' | 'ballFlipper'
 }
 
 export const mWorld = new MWorld<Entity>()
 
 export const queries = {
-    sprite: mWorld.with("sprite"),
-    physicBody: mWorld.with("planck"),
+    planckSprite: mWorld.with("sprite", "planck"),
     balls: mWorld.with("sprite", "planck", "position", "size", "ball"),
     walls: mWorld.with("wall"),
     flippers: mWorld.with("flippers", "planck", "position"),
@@ -49,12 +61,13 @@ export const queries = {
     flipperShape: mWorld.with("flippers", "planck", "position", "renderShape"),
     isFlippable: mWorld.with("motorSpeed", "planckRevolute"),
     leftFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "left"),
-    rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right")
+    rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right"),
+    contactData: mWorld.with("contactPoint", "contactEntityA", "contactEntityB", "contactType")
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     const {sprite, position, size, planck} = _e
-    if(!sprite || !planck || !size) return
+    if(!sprite || !planck || !size || !position) return
     sprite.gameobj = _scene.add.sprite(
         position.x,
         position.y,
@@ -85,12 +98,14 @@ export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorl
     if(!sprite || !planck) return
     // sprite.gameobj?.setActive(false).setVisible(false)
     sprite.gameobj?.destroy()
-    sprite.gameobj = undefined
+    // sprite.gameobj = undefined
 
     if(planck.body) {
         _pWorld.destroyBody(planck.body)
-        planck.body = undefined
+        // planck.body = undefined
     }
+
+    // _mWorld.remove(_e)
 }
 
 // make a function to create wall in game from entities
@@ -185,7 +200,7 @@ export const onVoidEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
 export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     const {position, planck, flippers} = _e
 
-    if(!flippers) return
+    if(!flippers || !position) return
 
     const shape = _scene.add.rectangle(
         position.x,
@@ -290,5 +305,38 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
             const bodyAngle = entity.planck.body?.getAngle()
             entity.renderShape.rotation = bodyAngle
         }
+    }
+}
+
+// handle contact data system, mostly with balls
+export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    for( const entity of queries.contactData ) {
+        const {contactPoint, contactEntityA, contactEntityB} = entity
+        switch (entity.contactType) {
+            case "ball2": {
+                _mWorld.remove(contactEntityA)
+                _mWorld.remove(contactEntityB)
+                console.log("contact point: ", contactPoint)
+                break
+            }
+
+            case "ballVoid": {
+                if(contactEntityA.ball) {
+                    _mWorld.remove(contactEntityA)
+                } else if (contactEntityB.ball) {
+                    _mWorld.remove(contactEntityB)
+                }
+
+                break
+            }
+
+            default: {
+                console.error("contact type does not exist")
+                break
+            }
+        }
+
+        _mWorld.remove(entity)
+
     }
 }

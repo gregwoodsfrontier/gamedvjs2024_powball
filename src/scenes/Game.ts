@@ -18,7 +18,7 @@ import { GameOptions } from '../gameOptions';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys, onVoidEntityCreated } from '../types/miniplexECS';
+import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys, onVoidEntityCreated, BodyUserData, onPlanckEntityRemoved, handleContactDataSys } from '../types/miniplexECS';
 
 type ContactManagementDataType = {
     body1 : Body,
@@ -139,80 +139,82 @@ export class Game extends Scene
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // this is the collision listener used to process contacts
-        this.world.on('pre-solve', (contact : Contact)  => {
+        this.world.on('pre-solve', this.onPlanckWorldPreSolve 
+        // (contact : Contact)  => {
 
-            // get both bodies user data
-            const userDataA : any = contact.getFixtureA().getBody().getUserData();
-            const userDataB : any = contact.getFixtureB().getBody().getUserData();
+        //     // get both bodies user data
+        //     const userDataA : any = contact.getFixtureA().getBody().getUserData();
+        //     const userDataB : any = contact.getFixtureB().getBody().getUserData();
 
-            // get the contact point
-            const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
-            const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
+        //     // get the contact point
+        //     const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
+        //     const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
 
-            // three nested "if" just to improve readability, to check for a collision we need:
-            // 1 - both bodies must be balls
-            if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
-                // both balls must have the same value
-                if (userDataA.value == userDataB.value) {
-                    // balls ids must not be already present in the array of ids 
-                    if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
-                        // 2 balls must not be the largest ball
-                        if(userDataA.value < GameOptions.ballbodies.length - 1) {
-                            // add bodies ids to ids array
-                            this.ids.push(userDataA.id)
-                            this.ids.push(userDataB.id)
+        //     // three nested "if" just to improve readability, to check for a collision we need:
+        //     // 1 - both bodies must be balls
+        //     if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
+        //         // both balls must have the same value
+        //         if (userDataA.value == userDataB.value) {
+        //             // balls ids must not be already present in the array of ids 
+        //             if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
+        //                 // 2 balls must not be the largest ball
+        //                 if(userDataA.value < GameOptions.ballbodies.length - 1) {
+        //                     // add bodies ids to ids array
+        //                     this.ids.push(userDataA.id)
+        //                     this.ids.push(userDataB.id)
 
-                            // clamp the resultant value
-                            const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
+        //                     // clamp the resultant value
+        //                     const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
 
-                            // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
-                            this.contactManagement.push({
-                                body1 : contact.getFixtureA().getBody(),
-                                body2 : contact.getFixtureB().getBody(),
-                                point : contactPoint,
-                                value : finalValue,
-                                id1 : userDataA.id,
-                                id2 : userDataB.id,
-                                body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
-                                body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
-                            })
-                        }
-                    }
-                }  
-            }
+        //                     // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
+        //                     this.contactManagement.push({
+        //                         body1 : contact.getFixtureA().getBody(),
+        //                         body2 : contact.getFixtureB().getBody(),
+        //                         point : contactPoint,
+        //                         value : finalValue,
+        //                         id1 : userDataA.id,
+        //                         id2 : userDataB.id,
+        //                         body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
+        //                         body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
+        //                     })
+        //                 }
+        //             }
+        //         }  
+        //     }
 
-            // make a condition that calls function to destroy balls in void
-            if (userDataA.type === bodyType.Void && userDataB.type === bodyType.Ball) {
-                if (this.ids.indexOf(userDataB.id) == -1) {
-                    this.ids.push(userDataB.id)
-                    this.contactMangementWithVoid.push({
-                        ball: contact.getFixtureB().getBody(),
-                        id: userDataB.id
-                    })
-                }
-            }
-            else if (userDataA.type === bodyType.Ball && userDataB.type === bodyType.Void) {
-                if (this.ids.indexOf(userDataA.id) == -1) {
-                    this.ids.push(userDataA.id)
-                    this.contactMangementWithVoid.push({
-                        ball: contact.getFixtureA().getBody(),
-                        id: userDataA.id
-                    })
-                }
-            }
+        //     // make a condition that calls function to destroy balls in void
+        //     if (userDataA.type === bodyType.Void && userDataB.type === bodyType.Ball) {
+        //         if (this.ids.indexOf(userDataB.id) == -1) {
+        //             this.ids.push(userDataB.id)
+        //             this.contactMangementWithVoid.push({
+        //                 ball: contact.getFixtureB().getBody(),
+        //                 id: userDataB.id
+        //             })
+        //         }
+        //     }
+        //     else if (userDataA.type === bodyType.Ball && userDataB.type === bodyType.Void) {
+        //         if (this.ids.indexOf(userDataA.id) == -1) {
+        //             this.ids.push(userDataA.id)
+        //             this.contactMangementWithVoid.push({
+        //                 ball: contact.getFixtureA().getBody(),
+        //                 id: userDataA.id
+        //             })
+        //         }
+        //     }
 
-            // play a sound when ball hits
-            if((userDataA.type === bodyType.Ball && userDataB.type === bodyType.Flipper) || (userDataA.type === bodyType.Flipper && userDataB.type === bodyType.Ball)) {
-                if(userDataB.type === bodyType.Ball) {
-                    const bodyB = contact.getFixtureB().getBody()
-                    const velB = bodyB.getLinearVelocity().lengthSquared()
-                    const threshold = 100
-                    if(velB > threshold) {
-                        this.sound.add('flipper-hit').play()
-                    }
-                }
-            }
-        });
+        //     // play a sound when ball hits
+        //     if((userDataA.type === bodyType.Ball && userDataB.type === bodyType.Flipper) || (userDataA.type === bodyType.Flipper && userDataB.type === bodyType.Ball)) {
+        //         if(userDataB.type === bodyType.Ball) {
+        //             const bodyB = contact.getFixtureB().getBody()
+        //             const velB = bodyB.getLinearVelocity().lengthSquared()
+        //             const threshold = 100
+        //             if(velB > threshold) {
+        //                 this.sound.add('flipper-hit').play()
+        //             }
+        //         }
+        //     }
+        // }
+        );
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
@@ -232,10 +234,11 @@ export class Game extends Scene
 
         // subscription to flippers entity creation
         queries.flippers.onEntityAdded.subscribe((entity) => {
-            if(import.meta.env.DEV) {
-                console.log("Flipper entity is created: ", entity)
-            }
             onFlipperEntityCreated(entity, this.world, mWorld, this)
+        })
+
+        queries.planckSprite.onEntityRemoved.subscribe(entity => {
+            onPlanckEntityRemoved(entity, this.world, mWorld, this)
         })
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -250,7 +253,7 @@ export class Game extends Scene
         this.createVoid()
 
         this.time.addEvent({
-            delay: 100,
+            delay: 1000,
             callback: () => {
                 this.createBall(
                     width * Phaser.Math.Between(35, 65) / 100,
@@ -290,6 +293,49 @@ export class Game extends Scene
             else {
                 return
             }
+        }
+    }
+
+    onPlanckWorldPreSolve(contact: Contact) {
+        // get the entity from the balls
+        const entityAID = contact.getFixtureA().getBody().getUserData() as BodyUserData
+        const entityA = mWorld.entity(entityAID.id)
+
+        const entityBID = contact.getFixtureB().getBody().getUserData() as BodyUserData
+        const entityB = mWorld.entity(entityBID.id)
+
+        const contactPoint = contact.getWorldManifold(null)?.points[0]
+
+        // check both entities if they are balls
+        if( entityA?.ball && entityB?.ball ){
+            // check if they are the same size
+            if( entityA.size === entityB.size ) {
+                // check if both entites are not queued for ball destruction
+                if( !entityA.queued && !entityB.queued ) {
+                    // check if the balls are not the largest ball in play
+                    if (entityA.size && entityA.size < GameOptions.ballbodies[6].size
+                        && entityB.size && entityB.size < GameOptions.ballbodies[6].size
+                    ) {
+                        // queue the balls for contact management. Just removing the components from the balls will cause performance to drop
+                        mWorld.add({
+                            contactPoint: contactPoint,
+                            contactEntityA: entityA,
+                            contactEntityB: entityB,
+                            contactType: 'ball2'
+                        })
+                    }
+                }
+            }
+        }
+
+        // check if ball contact with the void, despawn the ball
+        if( (entityA?.void && entityB?.ball) || (entityA?.ball && entityB?.void) ) {
+            mWorld.add({
+                contactPoint: contactPoint,
+                contactEntityA: entityA,
+                contactEntityB: entityB,
+                contactType: 'ballVoid'
+            })
         }
     }
 
@@ -350,29 +396,6 @@ export class Game extends Scene
         })
     }
 
-    // createVoidBody(_slopeW: number) {
-    //     const wallWidth = 10
-    //     const {width, height} = this.scale;
-        
-    //     // despawn ground
-    //     const dg = this.add.polygon( 
-    //         0,
-    //         0,
-    //         [
-    //             wallWidth + _slopeW, height - 60,
-    //             width - wallWidth - _slopeW, height - 60
-    //         ]
-    //     ).setStrokeStyle(5, 0x0ff00ff).setOrigin(0,0).setClosePath(false)
-
-    //     const body = this.createChainFixture(
-    //         this.world,
-    //         dg.pathData,
-    //         dg
-    //     )
-
-    //     return body
-    // }
-
     createWall() {
         mWorld.add({
             position: {x: 0, y: 0},
@@ -402,7 +425,8 @@ export class Game extends Scene
             planck: {
                 bodyType: "circle",
             },
-            score: GameOptions.ballbodies[0].size,
+            score: GameOptions.ballbodies[0].score,
+            audio: GameOptions.ballbodies[0].audioKey,
             ball: true
         })
     }
@@ -431,123 +455,39 @@ export class Game extends Scene
             this.updateTimer()
         }
         
-
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
 
-        // check if any contacts need to be resolved
-        // if(this.contactManagement.length > 0) {
-
-        //     // loop through all contacts
-        //     this.contactManagement.forEach((contact : ContactManagementDataType) => {
-
-        //         // set the emitters to explode
-        //         this.emittersClass.emitters[contact.value - 1].explode(
-        //             50 * contact.value,
-        //             toPixels(contact.body1.getPosition().x), 
-        //             toPixels(contact.body1.getPosition().y)
-        //         );
-        //         this.emittersClass.emitters[contact.value - 1].explode(
-        //             50 * contact.value,
-        //             toPixels(contact.body2.getPosition().x), 
-        //             toPixels(contact.body2.getPosition().y)
-        //         );
-
-        //         // add a time delay for ball destruction
-        //         this.time.addEvent({
-        //             delay: 10,
-        //             callback: () => {
-        //                 // destroy the balls
-        //                 this.sound.add(GameOptions.ballbodies[contact.value].audioKey).play()
-        //                 this.destroyBall(contact.body1);
-        //                 this.destroyBall(contact.body2);
-        //                 this.setScore = this.score + contact.value * 10
-        //             }
-        //         })
-
-        //         // adding a blast impulse to surrounding balls.
-        //         const query: AABB = new AABB(
-        //             Vec2(contact.point.x - toMeters(GameOptions.blastRadius), contact.point.y - toMeters(GameOptions.blastRadius)),
-        //             Vec2(contact.point.x + toMeters(GameOptions.blastRadius), contact.point.y + toMeters(GameOptions.blastRadius))
-        //         )
-
-        //         // query the world for fixtures inside the square, aka "radius"
-        //         this.world.queryAABB(query, (fixture: Fixture) => {
-        //             const body: Body = fixture.getBody()
-        //             const bodyPosition: Vec2 = body.getPosition()
-
-        //             // const bodyDistance: number = Math.sqrt(Math.pow(bodyPosition.y - contact.point.y, 2) + Math.pow(bodyPosition.x - contact.point.x, 2))
-        //             const angle : number = Math.atan2(bodyPosition.y - contact.point.y, bodyPosition.x - contact.point.x);
-
-        //             // the explosion effect itself is just a linear velocity applied to bodies
-        //             body.setLinearVelocity(new Vec2(GameOptions.blastImpulse * Math.cos(angle), GameOptions.blastImpulse * Math.sin(angle)));
-
-        //             return true
-        //         })
-                
-    
-        //         // add a time delay to create a new ball
-        //         this.time.addEvent({
-        //             delay: 200,
-        //             callback: () => {
-        //                 const ball = this.createBall(toPixels(contact.point.x), toPixels(contact.point.y), contact.value);
-        //                 // need a function to launch the ball upon creation
-        //                 const resultantVel = Vec2.add(contact.body1Vec, contact.body2Vec)
-        //                 resultantVel.normalize()
-        //                 ball.setLinearVelocity(new Vec2(
-        //                     GameOptions.launchImpulse * resultantVel.x,
-        //                     GameOptions.launchImpulse * resultantVel.y
-        //                 ))
-        //             }
-        //         })           
-        //     })
-
-        //     // clear the contact management array
-        //     this.contactManagement = [];
-        // }
-        
-        // if(this.contactMangementWithVoid.length > 0) {
-
-        //     this.contactMangementWithVoid.forEach((contact: any) => {
-        //         // add a time delay for ball destruction
-        //         this.time.addEvent({
-        //             delay: 50,
-        //             callback: () => {
-        //                 // destroy the balls
-        //                 this.swoosh = this.sound.add('swoosh', {
-        //                     volume: 0.5
-        //                 })
-        //                 if(this.swoosh.isPlaying) {
-        //                     this.swoosh.stop()
-        //                 }
-        //                 else {
-        //                     this.swoosh.play()
-        //                 }
-                        
-        //                 this.destroyBall(contact.ball)
-        //                 this.updateBallsIntoVoid = this.ballsIntoVoid + 1
-        //             }
-        //         })
-        //     })
-        //     // clear the management array
-        //     this.contactMangementWithVoid = []
-        // }
-
         syncSpritePhysicsSys(this.world, mWorld, this)
         flippablesSys(this.world, mWorld, this)
+        handleContactDataSys(this.world, mWorld, this)
 
-        // loop thru all bodies
-        // for (let body : Body = this.world.getBodyList() as Body; body; body = body.getNext() as Body) {
-        //     const userData : any = body.getUserData();
+        if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
+            this.sound.add('flip-left').play()
+        }
 
-        //     if(userData.type === bodyType.Ball || userData.type === bodyType.Flipper) {
-        //         const bodyPosition : Vec2 = body.getPosition();
-        //         const bodyAngle : number = body.getAngle();
+        if(this.DKey && Phaser.Input.Keyboard.JustDown(this.DKey)) {
+            this.sound.add('flip-right').play()
+        }
 
-        //         userData.sprite.setPosition(toPixels(bodyPosition.x), toPixels(bodyPosition.y));
-        //         userData.sprite.rotation = bodyAngle;
-        //     }
+        const leftFlipper = queries.leftFlip.entities[0]
+        const rightFlipper = queries.rightFlip.entities[0]
+
+        // "A" key is for left flipper input
+        if(this.AKey?.isDown) {
+            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
+        } else {
+            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
+        }
+
+        // "D" key is for left flipper input
+        if(this.DKey?.isDown) {
+            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
+        }
+        else {
+            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.activateSpeed
+        }
 
         //     if(this.isGameOver) {
         //         const gameOverTimer = this.time.addEvent({
@@ -582,31 +522,7 @@ export class Game extends Scene
         //     }
         // }
 
-        if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
-            this.sound.add('flip-left').play()
-        }
-
-        if(this.DKey && Phaser.Input.Keyboard.JustDown(this.DKey)) {
-            this.sound.add('flip-right').play()
-        }
-
-        const leftFlipper = queries.leftFlip.entities[0]
-        const rightFlipper = queries.rightFlip.entities[0]
-
-        // "A" key is for left flipper input
-        if(this.AKey?.isDown) {
-            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
-        } else {
-            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
-        }
-
-        // "D" key is for left flipper input
-        if(this.DKey?.isDown) {
-            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
-        }
-        else {
-            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.activateSpeed
-        }
+        
 
         // update score text every update frame
         // this.scoreText.setText(`${this.score}`)
