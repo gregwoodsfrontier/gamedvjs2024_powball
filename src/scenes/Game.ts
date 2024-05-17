@@ -1,35 +1,28 @@
-import { 
-    Box, 
-    Circle, 
+import {
     World, 
     Vec2,
     Body,
-    Chain,
     RevoluteJoint,
-    Contact,
-    WorldManifold,
-    Vec2Value,
-    AABB,
-    Fixture
+    Contact
 } from 'planck';
 import { Scene, GameObjects } from 'phaser';
 import { GameOptions } from '../gameOptions';
-// import { toMeters, toPixels } from '../plankUtils';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 import { WINCON } from '../types/winCon';
-import { onBallEntityCreated, mWorld, syncSpritePhysicsSys, queries, onWallEntityCreated, onFlipperEntityCreated, flippablesSys, onVoidEntityCreated, BodyUserData, onPlanckEntityRemoved, handleContactDataSys } from '../types/miniplexECS';
-
-type ContactManagementDataType = {
-    body1 : Body,
-    body2 : Body,
-    point : Vec2Value,
-    value : number,
-    id1 : number,
-    id2 : number,
-    body1Vec: Vec2Value,
-    body2Vec: Vec2Value
-}
+import { 
+    onBallEntityCreated, 
+    mWorld, 
+    syncSpritePhysicsSys, 
+    queries, 
+    onWallEntityCreated, 
+    onFlipperEntityCreated, 
+    flippablesSys, 
+    onVoidEntityCreated, 
+    BodyUserData, 
+    onPlanckEntityRemoved, 
+    handleContactDataSys 
+} from '../types/miniplexECS';
 export class Game extends Scene
 {
     constructor ()
