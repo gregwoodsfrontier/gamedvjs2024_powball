@@ -27,6 +27,7 @@ export type Entity = {
         isStatic?: boolean
     },
     ball?: boolean,
+    ballRank?: number,
     wall?: boolean,
     flippers?: {
         side: "left" | "right",
@@ -98,14 +99,10 @@ export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorl
     if(!sprite || !planck) return
     // sprite.gameobj?.setActive(false).setVisible(false)
     sprite.gameobj?.destroy()
-    // sprite.gameobj = undefined
 
     if(planck.body) {
         _pWorld.destroyBody(planck.body)
-        // planck.body = undefined
     }
-
-    // _mWorld.remove(_e)
 }
 
 // make a function to create wall in game from entities
@@ -312,11 +309,48 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
 export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     for( const entity of queries.contactData ) {
         const {contactPoint, contactEntityA, contactEntityB} = entity
+        let toRank = 0
+        if(contactEntityA.ballRank !== undefined) {
+            toRank = contactEntityA.ballRank +1
+        } else if (contactEntityB.ballRank !== undefined) {
+            toRank = contactEntityB.ballRank +1
+        }
         switch (entity.contactType) {
             case "ball2": {
                 _mWorld.remove(contactEntityA)
                 _mWorld.remove(contactEntityB)
-                console.log("contact point: ", contactPoint)
+
+                // _scene.time.addEvent({
+                //     delay: 100, 
+                //     callback: () => {
+                //         console.log("delay timer")
+                //     },
+                //     callbackScope: _scene,
+                //     loop: true,
+                // })
+
+                console.log("delay timer")
+
+                _mWorld.add({
+                    position: {
+                        x: toPixels(contactPoint.x),
+                        y: toPixels(contactPoint.y),
+                        
+                    },
+                    ballRank: toRank,
+                    size: GameOptions.ballbodies[toRank].size,
+                    sprite: {
+                        key: GameOptions.ballbodies[toRank].spriteKey
+                    },
+                    planck: {
+                        bodyType: "circle",
+                    },
+                    score: GameOptions.ballbodies[toRank].score,
+                    audio: GameOptions.ballbodies[toRank].audioKey,
+                    ball: true
+                })
+                    
+
                 break
             }
 
@@ -335,7 +369,6 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                 break
             }
         }
-
         _mWorld.remove(entity)
 
     }

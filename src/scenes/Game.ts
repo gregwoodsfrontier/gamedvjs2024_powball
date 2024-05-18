@@ -85,13 +85,8 @@ export class Game extends Scene
         const slopeH = 25
         const slopeAngle = Math.atan(slopeH/slopeW)
 
-        console.log(slopeAngle)
-
         // initialize global variables
-        this.ids = [];
         this.ballsAdded = 0;
-        this.contactManagement = [];
-        this.contactMangementWithVoid = [];
         this.emittersClass = new Emitters(this)
 
         this.emittersClass.buildEmitters()
@@ -132,82 +127,7 @@ export class Game extends Scene
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // this is the collision listener used to process contacts
-        this.world.on('pre-solve', this.onPlanckWorldPreSolve 
-        // (contact : Contact)  => {
-
-        //     // get both bodies user data
-        //     const userDataA : any = contact.getFixtureA().getBody().getUserData();
-        //     const userDataB : any = contact.getFixtureB().getBody().getUserData();
-
-        //     // get the contact point
-        //     const worldManifold : WorldManifold = contact.getWorldManifold(null) as WorldManifold;
-        //     const contactPoint : Vec2Value = worldManifold.points[0] as Vec2Value;
-
-        //     // three nested "if" just to improve readability, to check for a collision we need:
-        //     // 1 - both bodies must be balls
-        //     if (userDataA.type == bodyType.Ball && userDataB.type == bodyType.Ball) {
-        //         // both balls must have the same value
-        //         if (userDataA.value == userDataB.value) {
-        //             // balls ids must not be already present in the array of ids 
-        //             if (this.ids.indexOf(userDataA.id) == -1 && this.ids.indexOf(userDataB.id) == -1) {
-        //                 // 2 balls must not be the largest ball
-        //                 if(userDataA.value < GameOptions.ballbodies.length - 1) {
-        //                     // add bodies ids to ids array
-        //                     this.ids.push(userDataA.id)
-        //                     this.ids.push(userDataB.id)
-
-        //                     // clamp the resultant value
-        //                     const finalValue = Phaser.Math.Clamp(userDataA.value + 1, 0, GameOptions.ballbodies.length - 1)
-
-        //                     // add a contact management item with both bodies to remove, the contact point, the new value of the ball and both ids, velocity
-        //                     this.contactManagement.push({
-        //                         body1 : contact.getFixtureA().getBody(),
-        //                         body2 : contact.getFixtureB().getBody(),
-        //                         point : contactPoint,
-        //                         value : finalValue,
-        //                         id1 : userDataA.id,
-        //                         id2 : userDataB.id,
-        //                         body1Vec: contact.getFixtureA().getBody().getLinearVelocity(),
-        //                         body2Vec: contact.getFixtureB().getBody().getLinearVelocity(),
-        //                     })
-        //                 }
-        //             }
-        //         }  
-        //     }
-
-        //     // make a condition that calls function to destroy balls in void
-        //     if (userDataA.type === bodyType.Void && userDataB.type === bodyType.Ball) {
-        //         if (this.ids.indexOf(userDataB.id) == -1) {
-        //             this.ids.push(userDataB.id)
-        //             this.contactMangementWithVoid.push({
-        //                 ball: contact.getFixtureB().getBody(),
-        //                 id: userDataB.id
-        //             })
-        //         }
-        //     }
-        //     else if (userDataA.type === bodyType.Ball && userDataB.type === bodyType.Void) {
-        //         if (this.ids.indexOf(userDataA.id) == -1) {
-        //             this.ids.push(userDataA.id)
-        //             this.contactMangementWithVoid.push({
-        //                 ball: contact.getFixtureA().getBody(),
-        //                 id: userDataA.id
-        //             })
-        //         }
-        //     }
-
-        //     // play a sound when ball hits
-        //     if((userDataA.type === bodyType.Ball && userDataB.type === bodyType.Flipper) || (userDataA.type === bodyType.Flipper && userDataB.type === bodyType.Ball)) {
-        //         if(userDataB.type === bodyType.Ball) {
-        //             const bodyB = contact.getFixtureB().getBody()
-        //             const velB = bodyB.getLinearVelocity().lengthSquared()
-        //             const threshold = 100
-        //             if(velB > threshold) {
-        //                 this.sound.add('flipper-hit').play()
-        //             }
-        //         }
-        //     }
-        // }
-        );
+        this.world.on('pre-solve', this.onPlanckWorldPreSolve);
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
@@ -250,7 +170,8 @@ export class Game extends Scene
             callback: () => {
                 this.createBall(
                     width * Phaser.Math.Between(35, 65) / 100,
-                    height * 0.1                    
+                    height * 0.05, 
+                    0         
                 )
             },
             repeat: 100
@@ -310,6 +231,9 @@ export class Game extends Scene
                         && entityB.size && entityB.size < GameOptions.ballbodies[6].size
                     ) {
                         // queue the balls for contact management. Just removing the components from the balls will cause performance to drop
+                        mWorld.addComponent(entityA, "queued", true)
+                        mWorld.addComponent(entityB, "queued", true)
+                        
                         mWorld.add({
                             contactPoint: contactPoint,
                             contactEntityA: entityA,
@@ -405,21 +329,22 @@ export class Game extends Scene
     }
 
     // method to create a ball
-    createBall(posX : number, posY : number) {
+    createBall(posX : number, posY : number, rank: number) {
         mWorld.add({
+            ballRank: rank,
             position: {
                 x: posX,
                 y: posY
             },
-            size: GameOptions.ballbodies[0].size,
+            size: GameOptions.ballbodies[rank].size,
             sprite: {
-                key: GameOptions.ballbodies[0].spriteKey
+                key: GameOptions.ballbodies[rank].spriteKey
             },
             planck: {
                 bodyType: "circle",
             },
-            score: GameOptions.ballbodies[0].score,
-            audio: GameOptions.ballbodies[0].audioKey,
+            score: GameOptions.ballbodies[rank].score,
+            audio: GameOptions.ballbodies[rank].audioKey,
             ball: true
         })
     }
