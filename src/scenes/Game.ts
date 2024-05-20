@@ -21,7 +21,8 @@ import {
     onVoidEntityCreated, 
     BodyUserData, 
     onPlanckEntityRemoved, 
-    handleContactDataSys 
+    handleContactDataSys, 
+    particleEffectSys
 } from '../types/miniplexECS';
 export class Game extends Scene
 {
@@ -377,9 +378,7 @@ export class Game extends Scene
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
 
-        syncSpritePhysicsSys(this.world, mWorld, this)
-        flippablesSys(this.world, mWorld, this)
-        handleContactDataSys(this.world, mWorld, this)
+        
 
         if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
             this.sound.add('flip-left').play()
@@ -406,6 +405,12 @@ export class Game extends Scene
         else {
             rightFlipper.motorSpeed = GameOptions.flipperConfig.right.activateSpeed
         }
+
+        
+        flippablesSys(this.world, mWorld, this)
+        handleContactDataSys(this.world, mWorld, this)
+        particleEffectSys(mWorld, this, this.emittersClass)
+        syncSpritePhysicsSys(this.world, mWorld, this)
 
         //     if(this.isGameOver) {
         //         const gameOverTimer = this.time.addEvent({

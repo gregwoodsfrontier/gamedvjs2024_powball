@@ -11,6 +11,7 @@ export class Emitters {
     currentScene: Scene
     emitters: Phaser.GameObjects.Particles.ParticleEmitter[]
 
+    // make a emitter for each ball type
     buildEmitters(): void {
         if(this.emitters.length > 0) {
             return

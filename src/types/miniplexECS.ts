@@ -3,6 +3,7 @@ import { GameObjects, Scene } from 'phaser';
 import { Body, Box, Chain, Circle, RevoluteJoint, World } from 'planck';
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
+import { Emitters } from '../effects/Emitters';
 
 export type BodyUserData = {
     id: number
@@ -10,6 +11,7 @@ export type BodyUserData = {
 
 export type Entity = {
     position?: { x: number; y: number },
+    angle?: number,
     points?: { x: number; y: number }[],
     // tag for flagging balls queued for spawning big balls
     queued?: true,
@@ -49,6 +51,16 @@ export type Entity = {
     contactEntityA?: Entity,
     contactEntityB?: Entity,
     contactType?: 'ball2' | 'ballVoid' | 'ballFlipper'
+    // for particle emitters
+    // need ballRank
+    emitters?: {
+        bodyAPosition: {
+            x: number; y: number
+        },
+        bodyBPosition: {
+            x: number; y: number
+        }
+    }
 }
 
 export const mWorld = new MWorld<Entity>()
@@ -63,7 +75,8 @@ export const queries = {
     isFlippable: mWorld.with("motorSpeed", "planckRevolute"),
     leftFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "left"),
     rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right"),
-    contactData: mWorld.with("contactPoint", "contactEntityA", "contactEntityB", "contactType")
+    contactData: mWorld.with("contactPoint", "contactEntityA", "contactEntityB", "contactType"),
+    particles: mWorld.with("ballRank", "emitters")
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -284,23 +297,38 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
     for (const entity of queries.balls) {
         const {sprite, planck} = entity
         if(sprite.gameobj && planck.body) {
+            const phaserScale = {
+                x: toPixels(planck.body?.getPosition().x),
+                y: toPixels(planck.body?.getPosition().y)
+            }
             sprite.gameobj?.setPosition(
-                toPixels(planck.body?.getPosition().x),
-                toPixels(planck.body?.getPosition().y),
+                phaserScale.x,
+                phaserScale.y,
             )
+            entity.position = phaserScale
+
             const bodyAngle = planck.body?.getAngle()
             sprite.gameobj.rotation = bodyAngle
+            entity.angle = bodyAngle
         }
     }
 
     for (const entity of queries.flipperShape) {
-        if(entity.planck.body) {
+        const {planck} = entity
+        if(planck.body) {
+            const phaserScale = {
+                x: toPixels(planck.body?.getPosition().x),
+                y: toPixels(planck.body?.getPosition().y)
+            }
             entity.renderShape.setPosition(
-                toPixels(entity.planck.body?.getPosition().x),
-                toPixels(entity.planck.body?.getPosition().y),
+                phaserScale.x,
+                phaserScale.y,
             )
-            const bodyAngle = entity.planck.body?.getAngle()
+            entity.position = phaserScale
+
+            const bodyAngle = planck.body?.getAngle()
             entity.renderShape.rotation = bodyAngle
+            entity.angle = bodyAngle
         }
     }
 }
@@ -317,44 +345,63 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
         }
         switch (entity.contactType) {
             case "ball2": {
+                
+                // adding particles data here
+                if(contactEntityA.position && contactEntityB.position) {
+                    console.log("particle effects got run", contactEntityA.position)
+                    _mWorld.add({
+                        ballRank: toRank - 1,
+                        emitters: {
+                            bodyAPosition: {
+                                x: contactEntityA.position.x,
+                                y: contactEntityA.position.y
+                            },
+                            bodyBPosition: {
+                                x: contactEntityB.position.x, 
+                                y: contactEntityB.position.y
+                            }
+                        }
+                    })
+                }
+
+                // removing both balls
                 _mWorld.remove(contactEntityA)
                 _mWorld.remove(contactEntityB)
 
-                // _scene.time.addEvent({
-                //     delay: 100, 
-                //     callback: () => {
-                //         console.log("delay timer")
-                //     },
-                //     callbackScope: _scene,
-                //     loop: true,
-                // })
-
-                console.log("delay timer")
-
-                _mWorld.add({
-                    position: {
-                        x: toPixels(contactPoint.x),
-                        y: toPixels(contactPoint.y),
-                        
+                // spwaning a bigger ball but in delay
+                _scene.time.addEvent({
+                    delay: 80, 
+                    callback: () => {
+                        _mWorld.add({
+                            // contact point is of planck scale so needs conversion
+                            position: {
+                                x: toPixels(contactPoint.x),
+                                y: toPixels(contactPoint.y),
+                                
+                            },
+                            ballRank: toRank,
+                            size: GameOptions.ballbodies[toRank].size,
+                            sprite: {
+                                key: GameOptions.ballbodies[toRank].spriteKey
+                            },
+                            planck: {
+                                bodyType: "circle",
+                            },
+                            score: GameOptions.ballbodies[toRank].score,
+                            audio: GameOptions.ballbodies[toRank].audioKey,
+                            ball: true
+                        })
                     },
-                    ballRank: toRank,
-                    size: GameOptions.ballbodies[toRank].size,
-                    sprite: {
-                        key: GameOptions.ballbodies[toRank].spriteKey
-                    },
-                    planck: {
-                        bodyType: "circle",
-                    },
-                    score: GameOptions.ballbodies[toRank].score,
-                    audio: GameOptions.ballbodies[toRank].audioKey,
-                    ball: true
+                    callbackScope: _scene,
+                    repeat: 0,
                 })
-                    
 
+                
                 break
             }
 
             case "ballVoid": {
+                // just removing the balls
                 if(contactEntityA.ball) {
                     _mWorld.remove(contactEntityA)
                 } else if (contactEntityB.ball) {
@@ -371,5 +418,33 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
         }
         _mWorld.remove(entity)
 
+    }
+}
+
+// handle expolsion physics in a system
+
+// handle particle effects for explosion
+export const particleEffectSys = (_mWorld: MWorld, _scene: Scene, _emitters: Emitters) => {
+    // make a explosion for both bodies in contact
+    for (const entity of queries.particles) {
+        const {ballRank, emitters} = entity
+        const mul = 50
+
+        // emitter for body A
+        _emitters.emitters[ballRank].explode(
+            mul * (ballRank + 1),
+            emitters.bodyAPosition.x,
+            emitters.bodyAPosition.y
+        )
+
+        // emitter for body B
+        _emitters.emitters[ballRank].explode(
+            mul * (ballRank + 1),
+            emitters.bodyBPosition.x,
+            emitters.bodyBPosition.y
+        )
+
+        // remove entity since we are done with it
+        _mWorld.remove(entity)
     }
 }
