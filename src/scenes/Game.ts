@@ -17,12 +17,13 @@ import {
     queries, 
     onWallEntityCreated, 
     onFlipperEntityCreated, 
-    flippablesSys, 
-    onVoidEntityCreated, 
+    flippablesSys,
     BodyUserData, 
     onPlanckEntityRemoved, 
     handleContactDataSys, 
-    particleEffectSys
+    particleEffectSys,
+    explosionPhysicsSys,
+    keyBoardInputSys
 } from '../types/miniplexECS';
 export class Game extends Scene
 {
@@ -136,14 +137,9 @@ export class Game extends Scene
             onBallEntityCreated(entity, this.world, mWorld, this)
         })
 
-        // for walls
+        // for walls and also with void type
         queries.walls.onEntityAdded.subscribe((entity) => {
             onWallEntityCreated(entity, this.world, mWorld, this)
-        })
-
-        // for void
-        queries.void.onEntityAdded.subscribe((entity) => {
-            onVoidEntityCreated(entity, this.world, mWorld, this)
         })
 
         // subscription to flippers entity creation
@@ -263,7 +259,8 @@ export class Game extends Scene
                 x: 0, y: 0
             },
             points: GameOptions.boundingPoints.void,
-            void: true
+            void: true,
+            wall: true
         })
     }
 
@@ -279,7 +276,7 @@ export class Game extends Scene
             x: GameOptions.boundingPoints.wall[GameOptions.boundingPoints.wall.length-2].x * width,
             y: GameOptions.boundingPoints.wall[GameOptions.boundingPoints.wall.length-2].y * height
         }
-        mWorld.add({
+        const leftFlipper = mWorld.add({
             position: {
                 x: leftAnchor.x + flipperW,
                 y: leftAnchor.y + flipperH
@@ -293,10 +290,22 @@ export class Game extends Scene
             },
             planck: {
                 isStatic: false
-            }
+            },
+            motorSpeed: 0
         })
 
-        mWorld.add({
+        mWorld.addComponent(leftFlipper, "keyBoardKey", this.AKey)
+        mWorld.addComponent(leftFlipper, "onKeyDown", () => {
+            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
+        })
+        mWorld.addComponent(leftFlipper, "onKeyUp", () => {
+            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
+        })
+        mWorld.addComponent(leftFlipper, "onKeyJustDown", () => {
+            this.sound.add('flip-left').play()
+        })
+
+        const rightFlipper = mWorld.add({
             position: {
                 x: rightAnchor.x - flipperW,
                 y: rightAnchor.y + flipperH
@@ -310,7 +319,19 @@ export class Game extends Scene
             },
             planck: {
                 isStatic: false
-            }
+            },
+            motorSpeed: 0
+        })
+
+        mWorld.addComponent(rightFlipper, "keyBoardKey", this.DKey)
+        mWorld.addComponent(rightFlipper, "onKeyDown", () => {
+            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
+        })
+        mWorld.addComponent(rightFlipper, "onKeyUp", () => {
+            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.releaseSpeed
+        })
+        mWorld.addComponent(rightFlipper, "onKeyJustDown", () => {
+            this.sound.add('flip-right').play()
         })
     }
 
@@ -377,39 +398,12 @@ export class Game extends Scene
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
-
-        
-
-        if(this.AKey && Phaser.Input.Keyboard.JustDown(this.AKey)) {
-            this.sound.add('flip-left').play()
-        }
-
-        if(this.DKey && Phaser.Input.Keyboard.JustDown(this.DKey)) {
-            this.sound.add('flip-right').play()
-        }
-
-        const leftFlipper = queries.leftFlip.entities[0]
-        const rightFlipper = queries.rightFlip.entities[0]
-
-        // "A" key is for left flipper input
-        if(this.AKey?.isDown) {
-            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
-        } else {
-            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
-        }
-
-        // "D" key is for left flipper input
-        if(this.DKey?.isDown) {
-            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
-        }
-        else {
-            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.activateSpeed
-        }
-
         
         flippablesSys(this.world, mWorld, this)
         handleContactDataSys(this.world, mWorld, this)
         particleEffectSys(mWorld, this, this.emittersClass)
+        explosionPhysicsSys(this.world, mWorld, this)
+        keyBoardInputSys(mWorld, this)
         syncSpritePhysicsSys(this.world, mWorld, this)
 
         //     if(this.isGameOver) {

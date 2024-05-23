@@ -1,6 +1,6 @@
 import { World as MWorld } from 'miniplex'
 import { GameObjects, Scene } from 'phaser';
-import { Body, Box, Chain, Circle, RevoluteJoint, World } from 'planck';
+import { AABB, Body, Box, Chain, Circle, Fixture, RevoluteJoint, Vec2, World } from 'planck';
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
 import { Emitters } from '../effects/Emitters';
@@ -61,7 +61,15 @@ export type Entity = {
             x: number; y: number
         }
     }
+    // explosion physics tag
+    explosionBox?: true,
+    // Keyboard Input. One entity can only have one key to be controlled.
+    keyBoardKey?: Phaser.Input.Keyboard.Key,
+    onKeyDown?: () => void,
+    onKeyUp?: () => void,
+    onKeyJustDown?: () => void,
 }
+
 
 export const mWorld = new MWorld<Entity>()
 
@@ -70,13 +78,18 @@ export const queries = {
     balls: mWorld.with("sprite", "planck", "position", "size", "ball"),
     walls: mWorld.with("wall"),
     flippers: mWorld.with("flippers", "planck", "position"),
-    void: mWorld.with("void"),
+    void: mWorld.with("void", "wall"),
     flipperShape: mWorld.with("flippers", "planck", "position", "renderShape"),
     isFlippable: mWorld.with("motorSpeed", "planckRevolute"),
     leftFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "left"),
     rightFlip: mWorld.with("flippers").where(({flippers}) => flippers.side === "right"),
     contactData: mWorld.with("contactPoint", "contactEntityA", "contactEntityB", "contactType"),
-    particles: mWorld.with("ballRank", "emitters")
+    particles: mWorld.with("ballRank", "emitters"),
+    explosionBox: mWorld.with("explosionBox", "contactPoint"),
+    controllableByKeyDown: mWorld.with("keyBoardKey", "onKeyDown"),
+    controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
+    controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
+    
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -98,9 +111,9 @@ export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
     })
     planck.body.createFixture({
         shape: new Circle(toMeters(size)),
-        density : 1,
+        density : 0.5,
         friction : 0.3,
-        restitution : 0.3
+        restitution : 0.4
     })
     planck.body.setUserData({
         id: _mWorld.id(_e)
@@ -135,50 +148,6 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
         position.y,
         renderCord
     ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
-    .setOrigin(0, 0)
-    .setClosePath(false)
-
-    _mWorld.addComponent(_e, "renderShape", shape)
-
-    const _body = _pWorld.createBody({
-        type: "static"
-    })
-    const planckCord = renderCord.map(value => {
-        return {
-            x: toMeters(value.x),
-            y: toMeters(value.y)
-        }
-    })
-    _body.createFixture({
-        shape: Chain(planckCord, false)
-    })
-    _body.setUserData({
-        id: _mWorld.id(_e)
-    })
-
-    _mWorld.addComponent(_e, "planck", {
-        body: _body,
-        bodyType: "chain"
-    })
-}
-
-// make a function to create a void (ball despawner) in game from entities
-export const onVoidEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {position, points} = _e
-    if(!points || !position) return
-
-    const renderCord = points.map(value => {
-        return {
-            x: value.x * _scene.scale.width,
-            y: value.y * _scene.scale.height
-        }
-    })
-    
-    const shape = _scene.add.polygon(
-        position.x,
-        position.y,
-        renderCord
-    ).setStrokeStyle(GameOptions.wallStrokeWidth, 0x0ff00ff)
     .setOrigin(0, 0)
     .setClosePath(false)
 
@@ -280,7 +249,7 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         planck.body = body
     }
 
-    mWorld.addComponent(_e, "motorSpeed", 0)
+    // mWorld.addComponent(_e, "motorSpeed", 0)
 }
 
 // controls the flipper joint motor speed
@@ -364,6 +333,12 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                     })
                 }
 
+                // add explosion to the surrounding balls
+                _mWorld.add({
+                    explosionBox: true,
+                    contactPoint: contactPoint
+                })
+
                 // removing both balls
                 _mWorld.remove(contactEntityA)
                 _mWorld.remove(contactEntityB)
@@ -422,6 +397,48 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
 }
 
 // handle expolsion physics in a system
+export const explosionPhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    // you need contact point and explosionBox tag
+    for (const entity of queries.explosionBox) {
+        const { contactPoint } = entity
+        // query the planck world for fixtures inside the square, aka "radius"
+        const planckQuery = AABB(
+            Vec2(
+                contactPoint.x - toMeters(GameOptions.blastRadius),
+                contactPoint.y - toMeters(GameOptions.blastRadius)
+            ),
+            Vec2(
+                contactPoint.x + toMeters(GameOptions.blastRadius),
+                contactPoint.y + toMeters(GameOptions.blastRadius)
+            )
+        )
+
+        _pWorld.queryAABB(planckQuery, (fixture: Fixture) => {
+            const body: Body = fixture.getBody()
+            const bodyPosition = body.getPosition();
+                    
+            // calculate the angle between that ball and the contact point.
+            const angle : number = Math.atan2(
+                bodyPosition.y - contactPoint.y, 
+                bodyPosition.x - contactPoint.x
+            );
+            
+            // the explosion effect itself is just a linear velocity applied to bodies
+            body.setLinearVelocity(
+                Vec2(
+                    GameOptions.blastImpulse * Math.cos(angle), 
+                    GameOptions.blastImpulse * Math.sin(angle)
+                )
+            );
+            
+            // true = keep querying the world
+            return true
+        })
+
+        // remove the entity when effect is finished
+        _mWorld.remove(entity)
+    }
+}
 
 // handle particle effects for explosion
 export const particleEffectSys = (_mWorld: MWorld, _scene: Scene, _emitters: Emitters) => {
@@ -446,5 +463,29 @@ export const particleEffectSys = (_mWorld: MWorld, _scene: Scene, _emitters: Emi
 
         // remove entity since we are done with it
         _mWorld.remove(entity)
+    }
+}
+
+// handles input on certain entities. Only on keyboard
+export const keyBoardInputSys = (_mWorld: MWorld, _scene: Scene) => {
+    for(const entity of queries.controllableByKeyDown) {
+        const {keyBoardKey, onKeyDown} = entity
+        if(keyBoardKey.isDown) {
+            onKeyDown()
+        }
+    }
+
+    for(const entity of queries.controllableByKeyUp) {
+        const {keyBoardKey, onKeyUp} = entity
+        if(keyBoardKey.isUp) {
+            onKeyUp()
+        }
+    }
+
+    for(const entity of queries.controllableByKeyJustDown) {
+        const {keyBoardKey, onKeyJustDown} = entity
+        if(Phaser.Input.Keyboard.JustDown(keyBoardKey)) {
+            onKeyJustDown()
+        }
     }
 }
