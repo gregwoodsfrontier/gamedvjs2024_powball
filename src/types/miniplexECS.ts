@@ -68,6 +68,9 @@ export type Entity = {
     onKeyDown?: () => void,
     onKeyUp?: () => void,
     onKeyJustDown?: () => void,
+    // for audio effects
+    audioKey?: string,
+    audioQueued?: true
 }
 
 
@@ -89,7 +92,8 @@ export const queries = {
     controllableByKeyDown: mWorld.with("keyBoardKey", "onKeyDown"),
     controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
-    
+    audio: mWorld.with("audioKey"),
+    audioQueue: mWorld.with("audioKey", "audioQueued"),
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -486,6 +490,41 @@ export const keyBoardInputSys = (_mWorld: MWorld, _scene: Scene) => {
         const {keyBoardKey, onKeyJustDown} = entity
         if(Phaser.Input.Keyboard.JustDown(keyBoardKey)) {
             onKeyJustDown()
+        }
+    }
+}
+
+// handles entities that need sound effects
+export const audioHandlingSys = {
+    onAdd: ( _scene: Scene) => {
+        queries.audio.onEntityAdded.subscribe((e: Entity) => {
+            if(e.audioKey) {
+                _scene.sound.add(e.audioKey)
+                console.log("A sound is added")
+            } else {
+                console.warn(e, " the audio key is not defined.")
+            }
+        })
+    },
+    onRemove: (_scene: Scene) => {
+        queries.audio.onEntityRemoved.subscribe((e: Entity) => {
+            if(e.audioKey) {
+                _scene.sound.removeByKey(e.audioKey)
+                console.log("A sound is removed by key")
+            } else {
+                console.warn(e, " the audio key is not defined.")
+            }
+        })
+    },
+    onUpdate: (_mWorld: MWorld, _scene: Scene) => {
+        for(const entity of queries.audioQueue) {
+            const {audioKey} = entity
+            const sound = _scene.sound.get(audioKey)
+            if(sound) {
+                sound.play()
+                console.log("sound is played")
+            }
+            _mWorld.removeComponent(entity, "audioQueued")
         }
     }
 }

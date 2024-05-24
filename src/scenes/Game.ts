@@ -23,7 +23,8 @@ import {
     handleContactDataSys, 
     particleEffectSys,
     explosionPhysicsSys,
-    keyBoardInputSys
+    keyBoardInputSys,
+    audioHandlingSys
 } from '../types/miniplexECS';
 export class Game extends Scene
 {
@@ -130,6 +131,9 @@ export class Game extends Scene
 
         // this is the collision listener used to process contacts
         this.world.on('pre-solve', this.onPlanckWorldPreSolve);
+
+        audioHandlingSys.onAdd(this)
+        audioHandlingSys.onRemove(this)
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
@@ -291,7 +295,8 @@ export class Game extends Scene
             planck: {
                 isStatic: false
             },
-            motorSpeed: 0
+            motorSpeed: 0,
+            audioKey: 'flip-left'
         })
 
         mWorld.addComponent(leftFlipper, "keyBoardKey", this.AKey)
@@ -302,7 +307,8 @@ export class Game extends Scene
             leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
         })
         mWorld.addComponent(leftFlipper, "onKeyJustDown", () => {
-            this.sound.add('flip-left').play()
+            mWorld.addComponent(leftFlipper, "audioQueued", true)
+            // this.sound.add('flip-left').play()
         })
 
         const rightFlipper = mWorld.add({
@@ -320,7 +326,8 @@ export class Game extends Scene
             planck: {
                 isStatic: false
             },
-            motorSpeed: 0
+            motorSpeed: 0,
+            audioKey: 'flip-right'
         })
 
         mWorld.addComponent(rightFlipper, "keyBoardKey", this.DKey)
@@ -331,7 +338,8 @@ export class Game extends Scene
             rightFlipper.motorSpeed = GameOptions.flipperConfig.right.releaseSpeed
         })
         mWorld.addComponent(rightFlipper, "onKeyJustDown", () => {
-            this.sound.add('flip-right').play()
+            mWorld.addComponent(rightFlipper, "audioQueued", true)
+            // this.sound.add('flip-right').play()
         })
     }
 
@@ -404,6 +412,7 @@ export class Game extends Scene
         particleEffectSys(mWorld, this, this.emittersClass)
         explosionPhysicsSys(this.world, mWorld, this)
         keyBoardInputSys(mWorld, this)
+        audioHandlingSys.onUpdate(mWorld, this)
         syncSpritePhysicsSys(this.world, mWorld, this)
 
         //     if(this.isGameOver) {
