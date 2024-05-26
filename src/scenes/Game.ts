@@ -5,7 +5,7 @@ import {
     RevoluteJoint,
     Contact
 } from 'planck';
-import { Scene, GameObjects } from 'phaser';
+import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
@@ -34,28 +34,11 @@ export class Game extends Scene
     }
 
     world : World;
-    wall: Body;
-    bump: Body;
-    void: Body;
-    leftFlipper: RevoluteJoint;
-    rightFlipper: RevoluteJoint;
 
     AKey: Phaser.Input.Keyboard.Key | undefined
     DKey: Phaser.Input.Keyboard.Key | undefined
 
-    contactManagement : any[];
-    contactMangementWithVoid: any[];
-
-    ballsAdded : number;
-    ids : number[];
-    score: number;
-    scoreText: GameObjects.Text;
-
-    startTime: Date
-    timeText: GameObjects.Text;
-    lifeText: GameObjects.Text;
-
-    isGameOver: boolean = false
+    // startTime: Date
 
     emittersClass: Emitters
 
@@ -63,62 +46,18 @@ export class Game extends Scene
 
     winCon: number
 
-    swoosh: Phaser.Sound.BaseSound
-
     // method to be called once the instance has been created
     create(data: {wincon: number}) : void {
 
-        if(!(data.wincon === WINCON.BALLS || data.wincon === WINCON.TIME)) {
-            console.error('the wincon does not exist! returning back to main menu')
-            this.scene.start("mainMenu")
-            return
-        }
-        else
-        {
-            this.winCon = data.wincon
-        }
-        
-        eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
-
-        this.isGameOver = false
+        mWorld.clear()
         
         // layout params
         const {width, height} = this.scale
-        const slopeW = width * 0.2
-        const slopeH = 25
-        const slopeAngle = Math.atan(slopeH/slopeW)
 
         // initialize global variables
-        this.ballsAdded = 0;
         this.emittersClass = new Emitters(this)
 
         this.emittersClass.buildEmitters()
-
-        this.startTime = new Date()
-
-        this.timeText = this.add.text(width/2, height/2, `0`,{
-            fontSize: '48px'
-        }).setOrigin(0.5, 0.5)
-
-        this.lifeText = this.add.text(width * 0.5, height * 0.8, `0`,{
-            fontSize: '48px',
-            color: '#dde452'
-        }).setOrigin(0.5, 0.5)
-
-        this.setScore = 0
-
-        // balls
-        this.updateBallsIntoVoid = 0
-
-        // hide the time text if win condition is not time-based, and vice versa.
-        if(this.winCon === WINCON.TIME) {
-            this.timeText.setVisible(true)
-            this.lifeText.setVisible(false)
-        }
-        else {
-            this.timeText.setVisible(false)
-            this.lifeText.setVisible(true)
-        }
 
         // create a Box2D world with gravity
         if(!this.world) {
@@ -137,28 +76,33 @@ export class Game extends Scene
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
-        queries.balls.onEntityAdded.subscribe((entity) => {
-            onBallEntityCreated(entity, this.world, mWorld, this)
-        })
-
+        if(!queries.balls.onEntityAdded.subscribers.size) {
+            queries.balls.onEntityAdded.subscribe((entity) => {
+                onBallEntityCreated(entity, this.world, mWorld, this)
+            })
+        }
+        
         // for walls and also with void type
-        queries.walls.onEntityAdded.subscribe((entity) => {
-            onWallEntityCreated(entity, this.world, mWorld, this)
-        })
+        if(!queries.walls.onEntityAdded.subscribers.size) {
+            queries.walls.onEntityAdded.subscribe((entity) => {
+                onWallEntityCreated(entity, this.world, mWorld, this)
+            })
+        }
 
         // subscription to flippers entity creation
-        queries.flippers.onEntityAdded.subscribe((entity) => {
-            onFlipperEntityCreated(entity, this.world, mWorld, this)
-        })
+        if(!queries.flippers.onEntityAdded.subscribers.size) {
+            queries.flippers.onEntityAdded.subscribe((entity) => {
+                onFlipperEntityCreated(entity, this.world, mWorld, this)
+            })
+        }
+        
+        if(!queries.planckSprite.onEntityRemoved.subscribers.size) {
+            queries.planckSprite.onEntityRemoved.subscribe(entity => {
+                onPlanckEntityRemoved(entity, this.world, mWorld, this)
+            })
+        }
 
-        queries.planckSprite.onEntityRemoved.subscribe(entity => {
-            onPlanckEntityRemoved(entity, this.world, mWorld, this)
-        })
-
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            mWorld.clear()
-            this.score = 0
-        })
+        eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
 
         this.createWall()
 
@@ -166,6 +110,7 @@ export class Game extends Scene
 
         this.createVoid()
 
+        // spawning event for the balls
         this.time.addEvent({
             delay: 1000,
             callback: () => {
@@ -178,37 +123,7 @@ export class Game extends Scene
             repeat: 100
         })
         
-    }
-
-    set updateBallsIntoVoid(_newValue: number) {
-        this.ballsIntoVoid = _newValue
-        this.lifeText.setText(`${GameOptions.maxBalls - this.ballsIntoVoid}`)
-
-        if(this.ballsIntoVoid >= GameOptions.maxBalls) {
-            this.isGameOver = true
-        }
-    }
-
-    updateTimer() {
-        const curr = new Date()
-        const timeDiff = curr.getTime() - this.startTime.getTime()
-
-        const secondsElapsed = Math.abs(timeDiff / 1000)
-
-        const secondsRemaining = GameOptions.maxTime - secondsElapsed
-
-        const seconds = Math.floor(secondsRemaining)
-
-        this.timeText.setText(`${seconds}`)
-
-        if(seconds <= 0) {
-            if(this.winCon === WINCON.TIME) {
-                this.isGameOver = true
-            }
-            else {
-                return
-            }
-        }
+        eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
     }
 
     onPlanckWorldPreSolve(contact: Contact) {
@@ -307,8 +222,7 @@ export class Game extends Scene
             leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
         })
         mWorld.addComponent(leftFlipper, "onKeyJustDown", () => {
-            mWorld.addComponent(leftFlipper, "audioQueued", true)
-            // this.sound.add('flip-left').play()
+            this.sound.get(leftFlipper.audioKey).play()
         })
 
         const rightFlipper = mWorld.add({
@@ -338,8 +252,7 @@ export class Game extends Scene
             rightFlipper.motorSpeed = GameOptions.flipperConfig.right.releaseSpeed
         })
         mWorld.addComponent(rightFlipper, "onKeyJustDown", () => {
-            mWorld.addComponent(rightFlipper, "audioQueued", true)
-            // this.sound.add('flip-right').play()
+            this.sound.get(rightFlipper.audioKey).play()
         })
     }
 
@@ -379,29 +292,35 @@ export class Game extends Scene
         })
     }
 
-    set setScore(_score: number) {
-        this.score = _score
-        eventsCenter.emit('score-updated', this.score)
-    }
+    on_gameover(_totalScore: number) {
+        mWorld.clear()
+        const gameOverTimer = this.time.addEvent({
+            loop: true,
+            delay: 100,
+            callback: () => {
+                this.world.off('pre-solve', this.onPlanckWorldPreSolve);
+                const body = this.world.getBodyList()
+                const joint = this.world.getJointList()
+                if(body) {
+                    this.world.destroyBody(body)
+                } else if(joint) {
+                    this.world.destroyJoint(joint)
+                } else {
+                    gameOverTimer.remove()
+                    console.log(this.world)
 
-    setGameOver() {
-        if(this.swoosh.isPlaying) {
-            this.swoosh.stop()
-        }
-        
-        eventsCenter.emit(CUSTOM_EVENTS.GAME_OVER)
-
-        this.scene.start("gameOver", {
-            score: this.score
+                    this.scene.start("gameOver", {
+                        score: _totalScore
+                    })
+                }
+            }
         })
+
+        
     }
 
     // method to be executed at each frame
     update(totalTime : number, deltaTime : number) : void {  
-
-        if(!this.isGameOver) {
-            this.updateTimer()
-        }
         
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
@@ -412,7 +331,6 @@ export class Game extends Scene
         particleEffectSys(mWorld, this, this.emittersClass)
         explosionPhysicsSys(this.world, mWorld, this)
         keyBoardInputSys(mWorld, this)
-        audioHandlingSys.onUpdate(mWorld, this)
         syncSpritePhysicsSys(this.world, mWorld, this)
 
         //     if(this.isGameOver) {
@@ -447,11 +365,5 @@ export class Game extends Scene
         //         })
         //     }
         // }
-
-        
-
-        // update score text every update frame
-        // this.scoreText.setText(`${this.score}`)
-        
     } 
 }

@@ -21,6 +21,7 @@ export class GameOver extends Scene {
         this.time.addEvent({
             delay: 3000,
             callback: () => {
+                this.scene.stop('ui')
                 this.scene.start('mainMenu')
             }
         })

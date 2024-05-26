@@ -4,6 +4,7 @@ import { AABB, Body, Box, Chain, Circle, Fixture, RevoluteJoint, Vec2, World } f
 import { toMeters, toPixels } from '../plankUtils';
 import { GameOptions } from '../gameOptions';
 import { Emitters } from '../effects/Emitters';
+import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
 
 export type BodyUserData = {
     id: number
@@ -69,8 +70,7 @@ export type Entity = {
     onKeyUp?: () => void,
     onKeyJustDown?: () => void,
     // for audio effects
-    audioKey?: string,
-    audioQueued?: true
+    audioKey?: string
 }
 
 
@@ -92,8 +92,7 @@ export const queries = {
     controllableByKeyDown: mWorld.with("keyBoardKey", "onKeyDown"),
     controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
-    audio: mWorld.with("audioKey"),
-    audioQueue: mWorld.with("audioKey", "audioQueued"),
+    audio: mWorld.with("audioKey")
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -343,9 +342,16 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                     contactPoint: contactPoint
                 })
 
+                // update the score
+                if(contactEntityA.score) {
+                    eventsCenter.emit(CUSTOM_EVENTS.SCORING_HAPPENED, contactEntityA.score*2)
+                }
+                
                 // removing both balls
                 _mWorld.remove(contactEntityA)
                 _mWorld.remove(contactEntityB)
+
+                
 
                 // spwaning a bigger ball but in delay
                 _scene.time.addEvent({
@@ -386,6 +392,8 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                 } else if (contactEntityB.ball) {
                     _mWorld.remove(contactEntityB)
                 }
+
+                eventsCenter.emit(CUSTOM_EVENTS.BALLS_FALLEN)
 
                 break
             }
@@ -515,16 +523,5 @@ export const audioHandlingSys = {
                 console.warn(e, " the audio key is not defined.")
             }
         })
-    },
-    onUpdate: (_mWorld: MWorld, _scene: Scene) => {
-        for(const entity of queries.audioQueue) {
-            const {audioKey} = entity
-            const sound = _scene.sound.get(audioKey)
-            if(sound) {
-                sound.play()
-                console.log("sound is played")
-            }
-            _mWorld.removeComponent(entity, "audioQueued")
-        }
     }
 }
