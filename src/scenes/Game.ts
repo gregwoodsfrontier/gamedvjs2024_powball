@@ -24,7 +24,8 @@ import {
     particleEffectSys,
     explosionPhysicsSys,
     keyBoardInputSys,
-    audioHandlingSys
+    audioHandlingSys,
+    shrinkablesSys
 } from '../types/miniplexECS';
 export class Game extends Scene
 {
@@ -102,8 +103,54 @@ export class Game extends Scene
             })
         }
 
+        queries.shrinkables.onEntityAdded.subscribe(e => {
+            const {size, shrink} = e
+            if(size > GameOptions.ballbodies[5].size) {
+                // adds a delay to the tween to smooth the resizing
+                this.time.delayedCall(shrink.period, () => {
+                    const chain = this.tweens.chain({
+                        targets: e,
+                        tweens: [
+                            {
+                                size: GameOptions.ballbodies[5].size,
+                                ease: "linear",
+                                duration: 500,
+                                delay: 100
+                            },
+                            {
+                                size: GameOptions.ballbodies[4].size,
+                                ease: "linear",
+                                duration: 500,
+                                delay: shrink.period
+                            },
+                        ]
+                    })
+                })
+            } else if (size > GameOptions.ballbodies[4].size) {
+                this.time.delayedCall(shrink.period, () => {
+                    this.tweens.add({
+                        targets: e,
+                        size: GameOptions.ballbodies[4].size,
+                        duration: 500,
+                        delay: 100,
+                        onUpdate: () => {
+                            console.log(`5 shrink: ${e.size}`)
+                        },
+                        onComplete: () => {
+                            mWorld.removeComponent(e, "shrink")
+                        }
+                    })
+                })
+                
+            }
+        })
+
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
 
+        // this.events.on("big-ball-spawned", () => {
+        //     shrinkablesSys(mWorld, this)
+        // }, this)
+        
         this.createWall()
 
         this.createFlippers()
@@ -114,13 +161,27 @@ export class Game extends Scene
         this.time.addEvent({
             delay: 1000,
             callback: () => {
-                this.createBall(
-                    width * Phaser.Math.Between(35, 65) / 100,
-                    height * 0.05, 
-                    0         
-                )
+                // this.createBall(
+                //     width * Phaser.Math.Between(35, 65) / 100,
+                //     height * 0.05, 
+                //     0         
+                // )
+                this.createBall(width * 0.5, height * 0.5, 6)
             },
-            repeat: 100
+            repeat: 0
+        })
+
+        this.time.addEvent({
+            delay: 1500,
+            callback: () => {
+                // this.createBall(
+                //     width * Phaser.Math.Between(35, 65) / 100,
+                //     height * 0.05, 
+                //     0         
+                // )
+                this.createBall(width * 0.5, height * 0.5, 5)
+            },
+            repeat: 0
         })
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
@@ -139,12 +200,12 @@ export class Game extends Scene
         // check both entities if they are balls
         if( entityA?.ball && entityB?.ball ){
             // check if they are the same size
-            if( entityA.size === entityB.size ) {
+            if( entityA.score === entityB.score ) {
                 // check if both entites are not queued for ball destruction
                 if( !entityA.queued && !entityB.queued ) {
                     // check if the balls are not the largest ball in play
-                    if (entityA.size && entityA.size < GameOptions.ballbodies[6].size
-                        && entityB.size && entityB.size < GameOptions.ballbodies[6].size
+                    if (entityA.score && entityA.score < GameOptions.ballbodies[6].score
+                        && entityB.score && entityB.score < GameOptions.ballbodies[6].score
                     ) {
                         // queue the balls for contact management. Just removing the components from the balls will cause performance to drop
                         mWorld.addComponent(entityA, "queued", true)
@@ -273,7 +334,7 @@ export class Game extends Scene
 
     // method to create a ball
     createBall(posX : number, posY : number, rank: number) {
-        mWorld.add({
+        const e = mWorld.add({
             ballRank: rank,
             position: {
                 x: posX,
@@ -290,15 +351,24 @@ export class Game extends Scene
             audio: GameOptions.ballbodies[rank].audioKey,
             ball: true
         })
+
+        if(rank > 4) {
+            mWorld.addComponent(e, "shrink", { period: 3000 })
+        }
     }
 
     on_gameover(_totalScore: number) {
         mWorld.clear()
+        // this.events.off("big-ball-spawned", () => {
+        //     shrinkablesSys(mWorld, this)
+        // }, this)
+
+        this.world.off('pre-solve', this.onPlanckWorldPreSolve);
         const gameOverTimer = this.time.addEvent({
             loop: true,
             delay: 100,
             callback: () => {
-                this.world.off('pre-solve', this.onPlanckWorldPreSolve);
+                
                 const body = this.world.getBodyList()
                 const joint = this.world.getJointList()
                 if(body) {
@@ -307,7 +377,6 @@ export class Game extends Scene
                     this.world.destroyJoint(joint)
                 } else {
                     gameOverTimer.remove()
-                    console.log(this.world)
 
                     this.scene.start("gameOver", {
                         score: _totalScore
@@ -325,6 +394,8 @@ export class Game extends Scene
         // advance the simulation
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
+
+        shrinkablesSys(this.world, mWorld, this)
         
         flippablesSys(this.world, mWorld, this)
         handleContactDataSys(this.world, mWorld, this)

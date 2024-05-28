@@ -70,7 +70,12 @@ export type Entity = {
     onKeyUp?: () => void,
     onKeyJustDown?: () => void,
     // for audio effects
-    audioKey?: string
+    audioKey?: string,
+    // for ball shrinking
+    shrink?: {
+        // requires a period to allow the ball to shrink
+        period: number
+    }
 }
 
 
@@ -92,7 +97,8 @@ export const queries = {
     controllableByKeyDown: mWorld.with("keyBoardKey", "onKeyDown"),
     controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
-    audio: mWorld.with("audioKey")
+    audio: mWorld.with("audioKey"),
+    shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite")
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -505,6 +511,7 @@ export const keyBoardInputSys = (_mWorld: MWorld, _scene: Scene) => {
 // handles entities that need sound effects
 export const audioHandlingSys = {
     onAdd: ( _scene: Scene) => {
+        if(queries.audio.onEntityAdded.subscribers.size > 0) return
         queries.audio.onEntityAdded.subscribe((e: Entity) => {
             if(e.audioKey) {
                 _scene.sound.add(e.audioKey)
@@ -515,6 +522,7 @@ export const audioHandlingSys = {
         })
     },
     onRemove: (_scene: Scene) => {
+        if(queries.audio.onEntityRemoved.subscribers.size > 0) return
         queries.audio.onEntityRemoved.subscribe((e: Entity) => {
             if(e.audioKey) {
                 _scene.sound.removeByKey(e.audioKey)
@@ -523,5 +531,24 @@ export const audioHandlingSys = {
                 console.warn(e, " the audio key is not defined.")
             }
         })
+    }
+}
+
+// adjust the sizes for shrinkables
+export const shrinkablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    for (const entity of queries.shrinkables) {
+        const {size} = entity
+        const f = entity.planck.body?.getFixtureList()
+        if(f) {
+            entity.planck.body?.destroyFixture(f)
+            entity.planck.body?.createFixture({
+                shape: new Circle(toMeters(size)),
+                density : 0.5,
+                friction : 0.3,
+                restitution : 0.4
+            })
+        }
+        
+        entity.sprite.gameobj?.setDisplaySize(size*2, size*2)
     }
 }
