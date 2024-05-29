@@ -117,6 +117,7 @@ export class UIScene extends Scene {
 
         eventsCenter.off(CUSTOM_EVENTS.SCORING_HAPPENED, this.on_scoring)
         eventsCenter.off(CUSTOM_EVENTS.BALLS_FALLEN, this.on_balls_fallen)
+        eventsCenter.off(CUSTOM_EVENTS.GAME_STARTED)
 
         eventsCenter.emit(CUSTOM_EVENTS.GAME_OVER, this.totalScore)
     }

@@ -74,7 +74,8 @@ export type Entity = {
     // for ball shrinking
     shrink?: {
         // requires a period to allow the ball to shrink
-        period: number
+        period: number,
+        sizeRank: number
     }
 }
 
@@ -98,7 +99,7 @@ export const queries = {
     controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
     audio: mWorld.with("audioKey"),
-    shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite")
+    shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite", "ballRank")
 }
 
 export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -326,7 +327,7 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                 
                 // adding particles data here
                 if(contactEntityA.position && contactEntityB.position) {
-                    console.log("particle effects got run", contactEntityA.position)
+                
                     _mWorld.add({
                         ballRank: toRank - 1,
                         emitters: {
@@ -363,7 +364,7 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                 _scene.time.addEvent({
                     delay: 80, 
                     callback: () => {
-                        _mWorld.add({
+                        const e2 = _mWorld.add({
                             // contact point is of planck scale so needs conversion
                             position: {
                                 x: toPixels(contactPoint.x),
@@ -382,6 +383,12 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                             audio: GameOptions.ballbodies[toRank].audioKey,
                             ball: true
                         })
+                        if(toRank > 4) {
+                            _mWorld.addComponent(e2, "shrink", {
+                                period: 3000,
+                                sizeRank: toRank
+                            })
+                        }
                     },
                     callbackScope: _scene,
                     repeat: 0,
@@ -534,8 +541,43 @@ export const audioHandlingSys = {
     }
 }
 
+// when a shrinkable entity is added, run the shrinking tween if size is larger than 3rd largest ball
+// keep running the tween until the size is 3rd largest
+export const onShrinkAdded = (_e: Entity, _mWorld: MWorld, _scene: Scene) => {
+    const {size, shrink} = _e
+    if(size && shrink) {
+        if(size <= GameOptions.ballbodies[4].size) {
+            _mWorld.removeComponent(_e, "shrink")
+            return
+        } else {
+            _scene.time.addEvent({
+                delay: shrink.period,
+                callback: () => {
+                    const counter = _scene.tweens.addCounter({
+                        from: GameOptions.ballbodies[shrink.sizeRank].size,
+                        to: GameOptions.ballbodies[shrink.sizeRank - 1].size,
+                        duration: 500,
+                        delay: 100,
+                        loop: 0,
+                        onUpdate: () => {
+                            _e.size = counter.getValue()
+                        },
+                        onComplete: () => {
+                            if(_e.shrink?.sizeRank) {
+                                _e.shrink.sizeRank = shrink.sizeRank - 1
+                            }
+                            onShrinkAdded(_e, _mWorld, _scene)
+                        }
+                    })
+                },
+                callbackScope: _scene
+            })
+        }
+    }
+}
+
 // adjust the sizes for shrinkables
-export const shrinkablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+export const sizeAdjustmentSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     for (const entity of queries.shrinkables) {
         const {size} = entity
         const f = entity.planck.body?.getFixtureList()

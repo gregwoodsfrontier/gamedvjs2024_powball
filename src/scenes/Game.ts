@@ -25,7 +25,8 @@ import {
     explosionPhysicsSys,
     keyBoardInputSys,
     audioHandlingSys,
-    shrinkablesSys
+    sizeAdjustmentSys,
+    onShrinkAdded
 } from '../types/miniplexECS';
 export class Game extends Scene
 {
@@ -103,54 +104,15 @@ export class Game extends Scene
             })
         }
 
-        queries.shrinkables.onEntityAdded.subscribe(e => {
-            const {size, shrink} = e
-            if(size > GameOptions.ballbodies[5].size) {
-                // adds a delay to the tween to smooth the resizing
-                this.time.delayedCall(shrink.period, () => {
-                    const chain = this.tweens.chain({
-                        targets: e,
-                        tweens: [
-                            {
-                                size: GameOptions.ballbodies[5].size,
-                                ease: "linear",
-                                duration: 500,
-                                delay: 100
-                            },
-                            {
-                                size: GameOptions.ballbodies[4].size,
-                                ease: "linear",
-                                duration: 500,
-                                delay: shrink.period
-                            },
-                        ]
-                    })
-                })
-            } else if (size > GameOptions.ballbodies[4].size) {
-                this.time.delayedCall(shrink.period, () => {
-                    this.tweens.add({
-                        targets: e,
-                        size: GameOptions.ballbodies[4].size,
-                        duration: 500,
-                        delay: 100,
-                        onUpdate: () => {
-                            console.log(`5 shrink: ${e.size}`)
-                        },
-                        onComplete: () => {
-                            mWorld.removeComponent(e, "shrink")
-                        }
-                    })
-                })
-                
-            }
-        })
+        if(!queries.shrinkables.onEntityAdded.subscribers.size) {
+            queries.shrinkables.onEntityAdded.subscribe(e =>{
+                onShrinkAdded(e, mWorld, this)
+            })
+        }
+        
 
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
 
-        // this.events.on("big-ball-spawned", () => {
-        //     shrinkablesSys(mWorld, this)
-        // }, this)
-        
         this.createWall()
 
         this.createFlippers()
@@ -161,30 +123,34 @@ export class Game extends Scene
         this.time.addEvent({
             delay: 1000,
             callback: () => {
-                // this.createBall(
-                //     width * Phaser.Math.Between(35, 65) / 100,
-                //     height * 0.05, 
-                //     0         
-                // )
-                this.createBall(width * 0.5, height * 0.5, 6)
+                this.createBall(
+                    width * Phaser.Math.Between(35, 65) / 100,
+                    height * 0.05, 
+                    4 
+                )
+                // this.createBall(width * 0.5, height * 0.5, 6)
             },
-            repeat: 0
+            repeat: 100
         })
 
-        this.time.addEvent({
-            delay: 1500,
-            callback: () => {
-                // this.createBall(
-                //     width * Phaser.Math.Between(35, 65) / 100,
-                //     height * 0.05, 
-                //     0         
-                // )
-                this.createBall(width * 0.5, height * 0.5, 5)
-            },
-            repeat: 0
-        })
+        // this.time.addEvent({
+        //     delay: 1500,
+        //     callback: () => {
+        //         // this.createBall(
+        //         //     width * Phaser.Math.Between(35, 65) / 100,
+        //         //     height * 0.05, 
+        //         //     0         
+        //         // )
+        //         this.createBall(width * 0.5, height * 0.5, 5)
+        //     },
+        //     repeat: 0
+        // })
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
+    }
+
+    onSceneShutDown() {
+
     }
 
     onPlanckWorldPreSolve(contact: Contact) {
@@ -353,17 +319,16 @@ export class Game extends Scene
         })
 
         if(rank > 4) {
-            mWorld.addComponent(e, "shrink", { period: 3000 })
+            mWorld.addComponent(e, "shrink", { period: 3000, sizeRank: rank })
         }
     }
 
     on_gameover(_totalScore: number) {
+
         mWorld.clear()
-        // this.events.off("big-ball-spawned", () => {
-        //     shrinkablesSys(mWorld, this)
-        // }, this)
 
         this.world.off('pre-solve', this.onPlanckWorldPreSolve);
+
         const gameOverTimer = this.time.addEvent({
             loop: true,
             delay: 100,
@@ -395,7 +360,7 @@ export class Game extends Scene
         this.world.step(deltaTime / 1000, 10, 8);
         this.world.clearForces();
 
-        shrinkablesSys(this.world, mWorld, this)
+        sizeAdjustmentSys(this.world, mWorld, this)
         
         flippablesSys(this.world, mWorld, this)
         handleContactDataSys(this.world, mWorld, this)
