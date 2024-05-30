@@ -1,33 +1,32 @@
 import {
     World, 
     Vec2,
-    Body,
-    RevoluteJoint,
     Contact
 } from 'planck';
 import { Scene } from 'phaser';
 import { GameOptions } from '../gameOptions';
 import { Emitters } from '../effects/Emitters';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
-import { WINCON } from '../types/winCon';
+import { BodyUserData } from '../bodyUserData';
+import { mWorld } from '../ecs/mWorld';
+import { queries } from '../ecs/queries';
 import { 
+    audioHandlingSys, 
     onBallEntityCreated, 
-    mWorld, 
-    syncSpritePhysicsSys, 
-    queries, 
     onWallEntityCreated, 
     onFlipperEntityCreated, 
-    flippablesSys,
-    BodyUserData, 
     onPlanckEntityRemoved, 
+    onShrinkAdded 
+} from '../ecs/subscribers';
+import { 
+    sizeAdjustmentSys, 
+    flippablesSys, 
     handleContactDataSys, 
-    particleEffectSys,
-    explosionPhysicsSys,
-    keyBoardInputSys,
-    audioHandlingSys,
-    sizeAdjustmentSys,
-    onShrinkAdded
-} from '../types/miniplexECS';
+    particleEffectSys, 
+    explosionPhysicsSys, 
+    keyBoardInputSys, 
+    syncSpritePhysicsSys 
+} from '../ecs/systems';
 export class Game extends Scene
 {
     constructor ()
@@ -126,25 +125,13 @@ export class Game extends Scene
                 this.createBall(
                     width * Phaser.Math.Between(35, 65) / 100,
                     height * 0.05, 
-                    4 
+                    1
                 )
                 // this.createBall(width * 0.5, height * 0.5, 6)
             },
             repeat: 100
         })
 
-        // this.time.addEvent({
-        //     delay: 1500,
-        //     callback: () => {
-        //         // this.createBall(
-        //         //     width * Phaser.Math.Between(35, 65) / 100,
-        //         //     height * 0.05, 
-        //         //     0         
-        //         // )
-        //         this.createBall(width * 0.5, height * 0.5, 5)
-        //     },
-        //     repeat: 0
-        // })
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
     }
@@ -368,38 +355,5 @@ export class Game extends Scene
         explosionPhysicsSys(this.world, mWorld, this)
         keyBoardInputSys(mWorld, this)
         syncSpritePhysicsSys(this.world, mWorld, this)
-
-        //     if(this.isGameOver) {
-        //         const gameOverTimer = this.time.addEvent({
-        //             delay: 100,
-        //             loop: true,
-        //             callback: () => {
-        //                 // check if body count is zero
-        //                 if(this.world.getBodyCount() === 0 ){
-        //                     gameOverTimer.remove();
-
-        //                     this.setGameOver()
-                            
-        //                 }
-
-        //                 let body: Body = this.world.getBodyList() as Body
-        //                 if(!body){
-        //                     if(import.meta.env.DEV) {
-        //                         console.warn("body in update does not exist")
-        //                     } 
-                            
-        //                     return
-        //                 }
-        //                 const _userData: any = body.getUserData();
-        //                 if(_userData.type === bodyType.Ball) {
-        //                     this.destroyBall(body)
-        //                 }
-        //                 else {
-        //                     this.world.destroyBody(body)
-        //                 }
-        //             }
-        //         })
-        //     }
-        // }
     } 
 }

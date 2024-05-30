@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Button } from '../ui/button';
-import { WINCON } from '../types/winCon';
+import { WINCON } from '../winCon';
 
 export class MainMenu extends Scene {
     constructor() {

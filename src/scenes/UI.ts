@@ -1,8 +1,8 @@
 import { GameObjects, Scene } from 'phaser';
 import { DisplayOptions } from '../displayOptions';
 import { CUSTOM_EVENTS, eventsCenter } from '../eventsCenter';
-import { WINCON } from '../types/winCon';
 import { GameOptions } from '../gameOptions';
+import { WINCON } from '../winCon';
 
 export class UIScene extends Scene {
     constructor() {

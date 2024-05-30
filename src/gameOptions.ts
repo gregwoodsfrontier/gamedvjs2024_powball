@@ -8,6 +8,7 @@ export const GameOptions = {
     // max number of balls allowed to fall to void
     maxBalls: 10,
     
+    
     // world gravity
     gravity : 8,
 
