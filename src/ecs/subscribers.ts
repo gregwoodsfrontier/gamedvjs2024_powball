@@ -1,5 +1,5 @@
 import { Scene } from "phaser"
-import { World, Circle, Chain, Box, RevoluteJoint } from "planck"
+import { World, Circle, Chain, Box, RevoluteJoint, CircleShape } from "planck"
 import { GameOptions } from "../gameOptions"
 import { toMeters } from "../plankUtils"
 import { Entity } from "./entity"
@@ -36,13 +36,18 @@ export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
 }
 
 export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {sprite, planck} = _e
-    if(!sprite || !planck) return
-    // sprite.gameobj?.setActive(false).setVisible(false)
-    sprite.gameobj?.destroy()
-
-    if(planck.body) {
+    const {sprite, planck, renderShape} = _e
+    
+    if(sprite && sprite.gameobj) {
+        sprite.gameobj?.destroy(true)
+    }
+    
+    if(planck && planck.body) {
         _pWorld.destroyBody(planck.body)
+    }
+
+    if(renderShape) {
+        renderShape.destroy(true)
     }
 }
 
@@ -226,4 +231,30 @@ export const audioHandlingSys = {
             }
         })
     }
+}
+
+// an Addition subscriber that makes a circular wall called a bumper
+export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+    const {position, size} = _e
+
+    const circle = _scene.add.circle(
+        position!.x,
+        position!.y,
+        size
+    ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
+
+    const physicsBody = _pWorld.createBody({
+        type: "static"
+    })
+    physicsBody.createFixture({
+        shape: CircleShape(size)
+    })
+    physicsBody.setUserData({
+        id: _mWorld.id(_e)
+    })
+
+    _mWorld.addComponent(_e, "renderShape", circle)
+    _mWorld.addComponent(_e, "planck", {
+        body: physicsBody
+    })
 }

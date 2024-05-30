@@ -1,9 +1,9 @@
 import { mWorld } from "./mWorld";
 
 export const queries = {
-    planckSprite: mWorld.with("sprite", "planck"),
-    balls: mWorld.with("sprite", "planck", "position", "size", "ball"),
-    walls: mWorld.with("wall"),
+    planckBody: mWorld.with("planck"),
+    balls: mWorld.with("sprite", "planck", "position", "size", "ball").without("wall"),
+    walls: mWorld.with("wall").without("ball"),
     flippers: mWorld.with("flippers", "planck", "position"),
     void: mWorld.with("void", "wall"),
     flipperShape: mWorld.with("flippers", "planck", "position", "renderShape"),
@@ -17,5 +17,6 @@ export const queries = {
     controllableByKeyJustDown: mWorld.with("keyBoardKey", "onKeyJustDown"),
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
     audio: mWorld.with("audioKey"),
-    shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite", "ballRank")
+    shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite", "ballRank"),
+    bumper: mWorld.with("position", "ball", "wall", "size")
 }

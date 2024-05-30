@@ -97,8 +97,8 @@ export class Game extends Scene
             })
         }
         
-        if(!queries.planckSprite.onEntityRemoved.subscribers.size) {
-            queries.planckSprite.onEntityRemoved.subscribe(entity => {
+        if(!queries.planckBody.onEntityRemoved.subscribers.size) {
+            queries.planckBody.onEntityRemoved.subscribe(entity => {
                 onPlanckEntityRemoved(entity, this.world, mWorld, this)
             })
         }
