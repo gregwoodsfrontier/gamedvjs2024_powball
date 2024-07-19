@@ -27,6 +27,7 @@ import {
     keyBoardInputSys, 
     syncSpritePhysicsSys 
 } from '../ecs/systems';
+import { generateVerticesForRound, toSceneScale } from '../plankUtils';
 export class Game extends Scene
 {
     constructor ()
@@ -282,6 +283,21 @@ export class Game extends Scene
             position: {x: 0, y: 0},
             wall: true,
             points: GameOptions.boundingPoints.bump,
+        })
+
+        // bumper
+        mWorld.add({
+            position: {x: 0, y: 0},
+            wall: true,
+            points: toSceneScale(
+                generateVerticesForRound(
+                    this.scale.width / 2,
+                    this.scale.height * 0.45,
+                    100,
+                    20
+                ),
+                this
+            )
         })
     }
 

@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-
+import { WINCON } from '../winCon';
 export class Preload extends Scene {
     constructor() {
         super('preLoad')
@@ -33,7 +33,8 @@ export class Preload extends Scene {
     }
 
     create() {
-        this.scene.start('mainMenu')
-        // this.scene.start('game')
+        // this.scene.start('mainMenu')
+        // debug mode
+        this.scene.start("gameContainer", {wincon: WINCON.BALLS})
     }
 }
