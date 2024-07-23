@@ -18,5 +18,5 @@ export const queries = {
     controllableByKeyUp: mWorld.with("keyBoardKey", "onKeyUp"),
     audio: mWorld.with("audioKey"),
     shrinkables: mWorld.with("shrink", "ball", "size", "planck", "sprite", "ballRank"),
-    bumper: mWorld.with("position", "ball", "wall", "size")
+    // bumper: mWorld.with("wall", "bouncy")
 }

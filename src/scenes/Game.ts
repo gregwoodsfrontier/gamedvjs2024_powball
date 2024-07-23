@@ -16,7 +16,8 @@ import {
     onWallEntityCreated, 
     onFlipperEntityCreated, 
     onPlanckEntityRemoved, 
-    onShrinkAdded 
+    onShrinkAdded, 
+    onBumperCreated
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -279,21 +280,22 @@ export class Game extends Scene
         })
 
         // make the pyramid bump
-        mWorld.add({
-            position: {x: 0, y: 0},
-            wall: true,
-            points: GameOptions.boundingPoints.bump,
-        })
+        // mWorld.add({
+        //     position: {x: 0, y: 0},
+        //     wall: true,
+        //     points: GameOptions.boundingPoints.bump,
+        // })
 
         // bumper
         mWorld.add({
             position: {x: 0, y: 0},
             wall: true,
+            bouncy: 1.1,
             points: toSceneScale(
                 generateVerticesForRound(
                     this.scale.width / 2,
                     this.scale.height * 0.45,
-                    100,
+                    50,
                     20
                 ),
                 this

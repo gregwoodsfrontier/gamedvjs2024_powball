@@ -82,9 +82,18 @@ export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld,
             y: toMeters(value.y)
         }
     })
-    _body.createFixture({
-        shape: Chain(planckCord, false)
-    })
+
+    if(_e.bouncy) {
+        _body.createFixture({
+            shape: Chain(planckCord, false),
+            restitution: _e.bouncy
+        })
+    } else {
+        _body.createFixture({
+            shape: Chain(planckCord, false)
+        })
+    }
+
     _body.setUserData({
         id: _mWorld.id(_e)
     })
@@ -235,26 +244,36 @@ export const audioHandlingSys = {
 
 // an Addition subscriber that makes a circular wall called a bumper
 export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {position, size} = _e
+    // const {position, size} = _e
 
-    const circle = _scene.add.circle(
-        position!.x,
-        position!.y,
-        size
-    ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
+    // const circle = _scene.add.circle(
+    //     position!.x,
+    //     position!.y,
+    //     size
+    // ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
 
-    const physicsBody = _pWorld.createBody({
-        type: "static"
-    })
-    physicsBody.createFixture({
-        shape: CircleShape(size)
-    })
-    physicsBody.setUserData({
-        id: _mWorld.id(_e)
-    })
+    // const physicsBody = _pWorld.createBody({
+    //     type: "static"
+    // })
+    // physicsBody.createFixture({
+    //     shape: CircleShape(size)
+    // })
+    // physicsBody.setUserData({
+    //     id: _mWorld.id(_e)
+    // })
 
-    _mWorld.addComponent(_e, "renderShape", circle)
-    _mWorld.addComponent(_e, "planck", {
-        body: physicsBody
-    })
+    // _mWorld.addComponent(_e, "renderShape", circle)
+    // _mWorld.addComponent(_e, "planck", {
+    //     body: physicsBody
+    // })
+
+    console.log(_e.planck)
+
+    if (_e.bouncy) {
+        _e.planck?.body?.getFixtureList()?.setRestitution(
+            _e.bouncy
+        )
+        console.log("bouncy is implemented")
+        console.table(_e.planck?.body?.getFixtureList())
+    }
 }

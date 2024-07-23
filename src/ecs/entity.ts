@@ -68,4 +68,6 @@ export type Entity = {
         period: number,
         sizeRank: number
     }
+    // for bumpers
+    bouncy?: number
 }
