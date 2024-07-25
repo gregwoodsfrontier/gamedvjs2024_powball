@@ -12,7 +12,12 @@ export function toPixels(n : number) : number {
     return n * GameOptions.worldScale;
 }
 
-// simple function to generate vertices for circles
+/** Simple function to generate vertices for circles
+ * @param {number} posx - X coordinate of your circle
+ * @param {number} posy - Y coordinate of your circle
+ * @param {number} r - Radius of your circle
+ * @param {number} n - Number of segments your circle is being divided
+ */
 export function generateVerticesForRound(posx: number, posy: number, r: number, n: number) {
     let vertices = [] as {x: number, y: number}[]
     const deltaRadian = Math.PI * 2 / n

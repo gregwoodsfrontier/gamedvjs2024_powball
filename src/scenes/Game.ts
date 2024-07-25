@@ -16,8 +16,7 @@ import {
     onWallEntityCreated, 
     onFlipperEntityCreated, 
     onPlanckEntityRemoved, 
-    onShrinkAdded, 
-    onBumperCreated
+    onShrinkAdded
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -67,8 +66,8 @@ export class Game extends Scene
             this.world = World(Vec2(0, GameOptions.gravity));
         }
 
+        // definition for the input controls
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
-
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // this is the collision listener used to process contacts
@@ -111,16 +110,17 @@ export class Game extends Scene
             })
         }
         
-
+        // define the behavior of the game once the round is over.
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
 
+        // layout creation which can be abstracted with inkscape svgs
         this.createWall()
 
         this.createFlippers()
 
         this.createVoid()
 
-        // spawning event for the balls
+        // making a spawner instead of a timer event in each level would be much better.
         this.time.addEvent({
             delay: 1000,
             callback: () => {
@@ -129,17 +129,11 @@ export class Game extends Scene
                     height * 0.05, 
                     1
                 )
-                // this.createBall(width * 0.5, height * 0.5, 6)
             },
             repeat: 100
         })
 
-        
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
-    }
-
-    onSceneShutDown() {
-
     }
 
     onPlanckWorldPreSolve(contact: Contact) {
@@ -151,6 +145,10 @@ export class Game extends Scene
         const entityB = mWorld.entity(entityBID.id)
 
         const contactPoint = contact.getWorldManifold(null)?.points[0]
+
+        console.info("entityA", entityA)
+        console.info("entityB", entityB)
+        
 
         // check both entities if they are balls
         if( entityA?.ball && entityB?.ball ){
@@ -274,26 +272,26 @@ export class Game extends Scene
 
     createWall() {
         mWorld.add({
-            position: {x: 0, y: 0},
+            // position: {x: 0, y: 0},
             wall: true,
             points: GameOptions.boundingPoints.wall,
         })
 
         // make the pyramid bump
-        // mWorld.add({
-        //     position: {x: 0, y: 0},
-        //     wall: true,
-        //     points: GameOptions.boundingPoints.bump,
-        // })
+        mWorld.add({
+            position: {x: 0, y: 0},
+            wall: true,
+            points: GameOptions.boundingPoints.bump,
+        })
 
         // bumper
         mWorld.add({
-            position: {x: 0, y: 0},
+            // position: {x: 0, y: 0},
             wall: true,
             bouncy: 1.1,
             points: toSceneScale(
                 generateVerticesForRound(
-                    this.scale.width / 2,
+                    this.scale.width * 0.25,
                     this.scale.height * 0.45,
                     50,
                     20
@@ -301,6 +299,7 @@ export class Game extends Scene
                 this
             )
         })
+        
     }
 
     // method to create a ball
@@ -323,7 +322,8 @@ export class Game extends Scene
             ball: true
         })
 
-        if(rank > 4) {
+        // Add a shrinkable component if the ball rank is too high
+        if(rank > GameOptions.shrinkCriteria.rank) {
             mWorld.addComponent(e, "shrink", { period: 3000, sizeRank: rank })
         }
     }

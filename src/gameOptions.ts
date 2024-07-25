@@ -83,5 +83,9 @@ export const GameOptions = {
             activateSpeed: 30,
             releaseSpeed: 5
         }
+    },
+
+    shrinkCriteria: {
+        rank: 4
     }
 }
