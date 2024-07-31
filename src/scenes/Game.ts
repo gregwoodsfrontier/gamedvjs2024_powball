@@ -16,8 +16,7 @@ import {
     onWallEntityCreated, 
     onFlipperEntityCreated, 
     onPlanckEntityRemoved, 
-    onShrinkAdded, 
-    onBumperCreated
+    onShrinkAdded
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -136,10 +135,6 @@ export class Game extends Scene
 
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
-    }
-
-    onSceneShutDown() {
-
     }
 
     onPlanckWorldPreSolve(contact: Contact) {

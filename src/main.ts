@@ -6,6 +6,7 @@ import { UIScene } from './scenes/UI';
 import { GameContainer } from './scenes/GameContainer';
 import { MainMenu } from './scenes/MainMenu';
 import { Preload } from './scenes/Preload'
+import { TestA } from './scenes/TestA';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -25,6 +26,7 @@ const config: Types.Core.GameConfig = {
         GameContainer,
         
         MainMenu,
+        TestA,
         
         MainGame,
         UIScene,
