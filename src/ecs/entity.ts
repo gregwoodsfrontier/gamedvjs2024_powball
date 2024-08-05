@@ -9,6 +9,8 @@ export type Entity = {
     queued?: true,
     size?: number,
     score?: number,
+    cornerNumber?: number,
+    geomRadius?: number,
     renderShape?: GameObjects.Shape,
     sprite?: {
         key: string,
@@ -69,5 +71,6 @@ export type Entity = {
         sizeRank: number
     }
     // for bumpers
-    bouncy?: number
+    bouncy?: number,
+    marker?: true
 }

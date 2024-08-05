@@ -1,5 +1,5 @@
 import { Scene } from "phaser"
-import { World, Circle, Chain, Box, RevoluteJoint, CircleShape } from "planck"
+import { World, Circle, Chain, Box, RevoluteJoint } from "planck"
 import { GameOptions } from "../gameOptions"
 import { toMeters } from "../plankUtils"
 import { Entity } from "./entity"
@@ -244,31 +244,6 @@ export const audioHandlingSys = {
 
 // an Addition subscriber that makes a circular wall called a bumper
 export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    // const {position, size} = _e
-
-    // const circle = _scene.add.circle(
-    //     position!.x,
-    //     position!.y,
-    //     size
-    // ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
-
-    // const physicsBody = _pWorld.createBody({
-    //     type: "static"
-    // })
-    // physicsBody.createFixture({
-    //     shape: CircleShape(size)
-    // })
-    // physicsBody.setUserData({
-    //     id: _mWorld.id(_e)
-    // })
-
-    // _mWorld.addComponent(_e, "renderShape", circle)
-    // _mWorld.addComponent(_e, "planck", {
-    //     body: physicsBody
-    // })
-
-    console.log(_e.planck)
-
     if (_e.bouncy) {
         _e.planck?.body?.getFixtureList()?.setRestitution(
             _e.bouncy
@@ -276,4 +251,15 @@ export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _sc
         console.log("bouncy is implemented")
         console.table(_e.planck?.body?.getFixtureList())
     }
+}
+
+export const onMarkerAdded = (entity: Entity, _mWorld: MWorld, _scene: Scene) => {
+    const { position, sprite } =  entity
+    if (!position || !sprite) return
+    sprite.gameobj = _scene.add.sprite(
+        position.x,
+        position.y,
+        sprite.key
+    )
+    sprite.gameobj.setScale(0.5).setAlpha
 }

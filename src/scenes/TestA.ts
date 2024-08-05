@@ -16,7 +16,8 @@ import {
     onWallEntityCreated, 
     onFlipperEntityCreated, 
     onPlanckEntityRemoved, 
-    onShrinkAdded
+    onShrinkAdded,
+    onMarkerAdded
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -54,7 +55,7 @@ export class TestA extends Scene
         mWorld.clear()
         
         // layout params
-        const {width, height} = this.scale
+        // const {width, height} = this.scale
 
         // initialize global variables
         this.emittersClass = new Emitters(this)
@@ -109,6 +110,10 @@ export class TestA extends Scene
                 onShrinkAdded(e, mWorld, this)
             })
         }
+
+        queries.marker.onEntityAdded.subscribe(e => {
+            onMarkerAdded(e, mWorld, this)
+        })
         
 
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
@@ -118,6 +123,8 @@ export class TestA extends Scene
         this.createFlippers()
 
         this.createVoid()
+
+        this.createSpawner()
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
     }
@@ -176,6 +183,19 @@ export class TestA extends Scene
             points: GameOptions.boundingPoints.void,
             void: true,
             wall: true
+        })
+    }
+
+    createSpawner() {
+        mWorld.add({
+            position: {
+                x: this.scale.width / 2,
+                y: 100
+            },
+            sprite: {
+                key: "golf"
+            },
+            marker: true
         })
     }
 
