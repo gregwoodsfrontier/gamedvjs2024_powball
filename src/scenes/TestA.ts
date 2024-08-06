@@ -26,7 +26,9 @@ import {
     particleEffectSys, 
     explosionPhysicsSys, 
     keyBoardInputSys, 
-    syncSpritePhysicsSys 
+    syncSpritePhysicsSys, 
+    moveSpriteThruPositionCompSystem,
+    spawnerSystem
 } from '../ecs/systems';
 import { generateVerticesForRound, toSceneScale } from '../plankUtils';
 export class TestA extends Scene
@@ -189,13 +191,15 @@ export class TestA extends Scene
     createSpawner() {
         mWorld.add({
             position: {
-                x: this.scale.width / 2,
+                x: this.scale.width / 2 ,
                 y: 100
             },
+            angle: 0,
             sprite: {
                 key: "golf"
             },
-            marker: true
+            marker: true,
+            movable: true
         })
     }
 
@@ -343,12 +347,14 @@ export class TestA extends Scene
         this.world.clearForces();
 
         sizeAdjustmentSys(this.world, mWorld, this)
+        spawnerSystem(this)
         
         flippablesSys(this.world, mWorld, this)
         handleContactDataSys(this.world, mWorld, this)
         particleEffectSys(mWorld, this, this.emittersClass)
         explosionPhysicsSys(this.world, mWorld, this)
         keyBoardInputSys(mWorld, this)
+        moveSpriteThruPositionCompSystem()
         syncSpritePhysicsSys(this.world, mWorld, this)
     } 
 }

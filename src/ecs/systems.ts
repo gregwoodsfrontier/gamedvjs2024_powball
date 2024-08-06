@@ -7,6 +7,25 @@ import { toPixels, toMeters } from "../plankUtils"
 import { queries } from "./queries"
 import { World as MWorld } from 'miniplex'
 
+/**
+ * 
+ */
+export const spawnerSystem = (_scene: Scene) => {
+    
+    for(const e of queries.marker) {
+        console.warn(e.position.x)
+    }
+}
+
+export const moveSpriteThruPositionCompSystem = () => {
+    for(const e of queries.movableSprites) {
+        if(!e.sprite.gameobj) return
+        e.sprite.gameobj.x = e.position.x
+        e.sprite.gameobj.y = e.position.y
+        e.sprite.gameobj.rotation = e.angle
+    }
+}
+
 // controls the flipper joint motor speed
 export const flippablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     for (const entity of queries.isFlippable) {

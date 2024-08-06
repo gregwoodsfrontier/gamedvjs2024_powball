@@ -72,5 +72,7 @@ export type Entity = {
     }
     // for bumpers
     bouncy?: number,
-    marker?: true
+    marker?: true,
+    movable?: true,
+    tween?: Phaser.Tweens.Tween
 }

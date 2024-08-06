@@ -255,11 +255,30 @@ export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _sc
 
 export const onMarkerAdded = (entity: Entity, _mWorld: MWorld, _scene: Scene) => {
     const { position, sprite } =  entity
+    const rightBounds = _scene.scale.width * 0.9
+    const leftBounds = _scene.scale.width * 0.1
+    // const speed = 5
+
     if (!position || !sprite) return
     sprite.gameobj = _scene.add.sprite(
         position.x,
         position.y,
         sprite.key
     )
-    sprite.gameobj.setScale(0.5).setAlpha
+    sprite.gameobj.setScale(0.5).setAlpha(0.4)
+
+    const tween = _scene.tweens.addCounter({
+        from: leftBounds,
+        to: rightBounds,
+        ease: "sine.inout",
+        yoyo: true,
+        repeat: -1,
+        duration: 3000,
+        onUpdate: tween => {
+            if(!entity.position) return
+            entity.position.x = tween.getValue()
+        }
+    })
+
+    _mWorld.addComponent(entity, "tween", tween)
 }
