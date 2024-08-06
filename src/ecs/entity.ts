@@ -1,5 +1,5 @@
 import { GameObjects } from "phaser";
-import { RevoluteJoint, Body } from "planck";
+import { RevoluteJoint, Body, Fixture } from "planck";
 
 export type Entity = {
     position?: { x: number; y: number },
@@ -9,13 +9,26 @@ export type Entity = {
     queued?: true,
     size?: number,
     score?: number,
-    cornerNumber?: number,
-    geomRadius?: number,
     renderShape?: GameObjects.Shape,
+    // retire this one
     sprite?: {
         key: string,
         gameobj?: GameObjects.Sprite
     },
+    // retire end
+    spriteKey?: string,
+    spriteObject?: GameObjects.Sprite, 
+    ///
+    isClosedPath?: boolean,
+    polygonObject?: GameObjects.Polygon,
+    rectObj?: GameObjects.Rectangle,
+    ballConfig?: {
+        density: number,
+        friction: number,
+        restitution: number
+    },
+    ballBody?: Body,
+    ///
     audio?: string,
     planck?: {
         body?: Body,

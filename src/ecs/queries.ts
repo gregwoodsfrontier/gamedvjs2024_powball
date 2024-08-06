@@ -2,7 +2,12 @@ import { mWorld } from "./mWorld";
 
 export const queries = {
     planckBody: mWorld.with("planck"),
-    balls: mWorld.with("sprite", "planck", "position", "size", "ball").without("wall"),
+    spriteConfigs: mWorld.with("position", "spriteKey"),
+    pPolygonConfigs: mWorld.with("position", "points", "isClosedPath"),
+    ballBodyConfig: mWorld.with("ballConfig", "ball", "position", "size"),
+    wallBodyConfig: mWorld.with("wall", "points"),
+    balls: mWorld.with("ball", "spriteObject", "ballBody"),
+    // balls: mWorld.with("sprite", "planck", "position", "size", "ball").without("wall"),
     walls: mWorld.with("wall").without("ball"),
     flippers: mWorld.with("flippers", "planck", "position"),
     void: mWorld.with("void", "wall"),

@@ -17,13 +17,13 @@ export const GameOptions = {
 
     // set of data for various balls
     ballbodies: [
-        {score: 10, size: 10, audioKey:'plate_light_1', spriteKey:'golf' , particleSize: 10, color: 0x0078ff},
-        {score: 20, size: 15, audioKey:'plate_light_2', spriteKey:'baseball' , particleSize: 20, color: 0x0078ff},
-        {score: 30, size: 20, audioKey:'plate_med_0', spriteKey:'tennis' , particleSize: 30, color: 0x0078ff},
-        {score: 50, size: 25, audioKey:'plate_med_1', spriteKey:'valleyball' , particleSize: 40, color: 0x0078ff},
-        {score: 70, size: 40, audioKey:'punch_med_0', spriteKey:'bowling' , particleSize: 50, color: 0x0078ff},
-        {score: 90, size: 50, audioKey:'punch_med_4', spriteKey:'football' , particleSize: 60, color: 0x0078ff},
-        {score: 100, size: 60, audioKey:'punch_med_4', spriteKey:'basketball' , particleSize: 70, color: 0x0078ff},
+        {score: 10, size: 10*2, audioKey:'plate_light_1', spriteKey:'golf' , particleSize: 10, color: 0x0078ff},
+        {score: 20, size: 15*2, audioKey:'plate_light_2', spriteKey:'baseball' , particleSize: 20, color: 0x0078ff},
+        {score: 30, size: 20*2, audioKey:'plate_med_0', spriteKey:'tennis' , particleSize: 30, color: 0x0078ff},
+        {score: 50, size: 25*2, audioKey:'plate_med_1', spriteKey:'valleyball' , particleSize: 40, color: 0x0078ff},
+        {score: 70, size: 40*2, audioKey:'punch_med_0', spriteKey:'bowling' , particleSize: 50, color: 0x0078ff},
+        {score: 90, size: 50*2, audioKey:'punch_med_4', spriteKey:'football' , particleSize: 60, color: 0x0078ff},
+        {score: 100, size: 60*2, audioKey:'punch_med_4', spriteKey:'basketball' , particleSize: 70, color: 0x0078ff},
     ],
 
     // colors of various balls

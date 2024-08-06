@@ -6,7 +6,7 @@ export class GameContainer extends Scene {
     }
 
     create(data: any) {
-        this.scene.launch('testA', data)
+        this.scene.launch('game', data)
         this.scene.launch('ui', data)
     }
 }

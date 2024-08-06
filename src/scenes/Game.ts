@@ -16,7 +16,10 @@ import {
     onWallEntityCreated, 
     onFlipperEntityCreated, 
     onPlanckEntityRemoved, 
-    onShrinkAdded
+    onShrinkAdded,
+    onMarkerAdded,
+    spriteCreationSubscription,
+    pinBallBodyCreationSubscription
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -25,7 +28,8 @@ import {
     particleEffectSys, 
     explosionPhysicsSys, 
     keyBoardInputSys, 
-    syncSpritePhysicsSys 
+    syncSpritePhysicsSys,
+    moveSpriteThruPositionCompSystem
 } from '../ecs/systems';
 import { generateVerticesForRound, toSceneScale } from '../plankUtils';
 export class Game extends Scene
@@ -39,6 +43,9 @@ export class Game extends Scene
 
     AKey: Phaser.Input.Keyboard.Key | undefined
     DKey: Phaser.Input.Keyboard.Key | undefined
+    WKey: Phaser.Input.Keyboard.Key | undefined
+
+    keysGroup: Phaser.Input.Keyboard.Key[]
 
     // startTime: Date
 
@@ -48,14 +55,14 @@ export class Game extends Scene
 
     winCon: number
 
+    spriteCreateUnsub: () => void
+    pinBallCreateUnsub: () => void
+
     // method to be called once the instance has been created
     create(data: {wincon: number}) : void {
 
         mWorld.clear()
-        
-        // layout params
-        const {width, height} = this.scale
-
+    
         // initialize global variables
         this.emittersClass = new Emitters(this)
 
@@ -71,19 +78,23 @@ export class Game extends Scene
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // this is the collision listener used to process contacts
-        this.world.on('pre-solve', this.onPlanckWorldPreSolve);
+        // this.world.on('pre-solve', this.onPlanckWorldPreSolve);
 
         audioHandlingSys.onAdd(this)
         audioHandlingSys.onRemove(this)
 
         // using miniplex to spawn game objects instead of coding inside scenes
         // for balls
-        if(!queries.balls.onEntityAdded.subscribers.size) {
-            queries.balls.onEntityAdded.subscribe((entity) => {
-                onBallEntityCreated(entity, this.world, mWorld, this)
-            })
-        }
+        // if(!queries.balls.onEntityAdded.subscribers.size) {
+        //     queries.balls.onEntityAdded.subscribe((entity) => {
+        //         onBallEntityCreated(entity, this.world, mWorld, this)
+        //     })
+        // }
         
+        // the unsub function is working
+        this.spriteCreateUnsub = spriteCreationSubscription(mWorld, this)
+        this.pinBallCreateUnsub = pinBallBodyCreationSubscription(this.world, mWorld)
+
         // for walls and also with void type
         if(!queries.walls.onEntityAdded.subscribers.size) {
             queries.walls.onEntityAdded.subscribe((entity) => {
@@ -109,6 +120,10 @@ export class Game extends Scene
                 onShrinkAdded(e, mWorld, this)
             })
         }
+
+        queries.marker.onEntityAdded.subscribe(e => {
+            onMarkerAdded(e, mWorld, this)
+        })
         
 
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
@@ -119,23 +134,54 @@ export class Game extends Scene
 
         this.createVoid()
 
-        // spawning event for the balls
+        this.createSpawner()
+
+        // test spawner event
         this.time.addEvent({
             delay: 1000,
+            loop: true,
             callback: () => {
-                this.createBall(
-                    width * Phaser.Math.Between(35, 65) / 100,
-                    height * 0.05, 
-                    1
-                )
-                // this.createBall(width * 0.5, height * 0.5, 6)
-            },
-            repeat: 100
-        })
+                const randomX = Phaser.Math.Between(25, 75) * 0.01  * this.scale.width
 
+                mWorld.add({
+                    position: {
+                        x: randomX,
+                        y: 100
+                    },
+                    ball: true,
+                    ballConfig: {
+                        density: 0.5,
+                        friction: 0.3,
+                        restitution: 0.4
+                    },
+                    size: GameOptions.ballbodies[0].size,
+                    ballRank: 0,
+                    spriteKey: GameOptions.ballbodies[0].spriteKey
+                })
+
+                console.log("a ball should be added")
+            }
+        })
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
     }
+
+    createSpawner() {
+        mWorld.add({
+            position: {
+                x: this.scale.width / 2 ,
+                y: 100
+            },
+            angle: 0,
+            sprite: {
+                key: "golf"
+            },
+            marker: true,
+            movable: true
+        })
+    }
+
+    
 
     onPlanckWorldPreSolve(contact: Contact) {
         // get the entity from the balls
@@ -361,6 +407,9 @@ export class Game extends Scene
         this.world.clearForces();
 
         sizeAdjustmentSys(this.world, mWorld, this)
+
+        // spawnerSystem(this)
+        moveSpriteThruPositionCompSystem()
         
         flippablesSys(this.world, mWorld, this)
         handleContactDataSys(this.world, mWorld, this)

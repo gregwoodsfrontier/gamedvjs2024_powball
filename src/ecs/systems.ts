@@ -10,12 +10,12 @@ import { World as MWorld } from 'miniplex'
 /**
  * 
  */
-export const spawnerSystem = (_scene: Scene) => {
+// export const spawnerSystem = (_scene: Scene) => {
     
-    for(const e of queries.marker) {
-        console.warn(e.position.x)
-    }
-}
+//     for(const e of queries.marker) {
+//         console.warn(e.position.x)
+//     }
+// }
 
 export const moveSpriteThruPositionCompSystem = () => {
     for(const e of queries.movableSprites) {
@@ -38,22 +38,32 @@ export const flippablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) =>
 // create physics body system
 export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
     for (const entity of queries.balls) {
-        const {sprite, planck} = entity
-        if(sprite.gameobj && planck.body) {
-            const phaserScale = {
-                x: toPixels(planck.body?.getPosition().x),
-                y: toPixels(planck.body?.getPosition().y)
-            }
-            sprite.gameobj?.setPosition(
-                phaserScale.x,
-                phaserScale.y,
-            )
-            entity.position = phaserScale
-
-            const bodyAngle = planck.body?.getAngle()
-            sprite.gameobj.rotation = bodyAngle
-            entity.angle = bodyAngle
+        const {spriteObject, ballBody} = entity
+        const phaserCords = {
+            x: toPixels(ballBody.getPosition().x),
+            y: toPixels(ballBody.getPosition().y)
         }
+        spriteObject.setPosition(phaserCords.x, phaserCords.y)
+        entity.position = phaserCords
+
+        spriteObject.rotation = ballBody.getAngle()
+        entity.angle = ballBody.getAngle()
+        // const {sprite, planck} = entity
+        // if(sprite.gameobj && planck.body) {
+        //     const phaserScale = {
+        //         x: toPixels(planck.body?.getPosition().x),
+        //         y: toPixels(planck.body?.getPosition().y)
+        //     }
+        //     sprite.gameobj?.setPosition(
+        //         phaserScale.x,
+        //         phaserScale.y,
+        //     )
+        //     entity.position = phaserScale
+
+        //     const bodyAngle = planck.body?.getAngle()
+        //     sprite.gameobj.rotation = bodyAngle
+        //     entity.angle = bodyAngle
+        // }
     }
 
     for (const entity of queries.flipperShape) {

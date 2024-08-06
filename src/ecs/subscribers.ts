@@ -3,35 +3,71 @@ import { World, Circle, Chain, Box, RevoluteJoint } from "planck"
 import { GameOptions } from "../gameOptions"
 import { toMeters } from "../plankUtils"
 import { Entity } from "./entity"
-import { mWorld } from "./mWorld"
 import { queries } from "./queries"
 import { World as MWorld } from 'miniplex'
 
-export const onBallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {sprite, position, size, planck} = _e
-    if(!sprite || !planck || !size || !position) return
-    sprite.gameobj = _scene.add.sprite(
-        position.x,
-        position.y,
-        sprite.key
-    )
-    sprite.gameobj.setDisplaySize(size*2, size*2)
-    planck.body = _pWorld.createDynamicBody({
-        type: "dynamic",
-        bullet: true,
-        position: {
-            x: toMeters(position.x),
-            y: toMeters(position.y)
+export const spriteCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
+    const unsub = queries.spriteConfigs.onEntityAdded.subscribe(_e => {
+        const obj =_scene.add.sprite(
+            _e.position.x,
+            _e.position.y,
+            _e.spriteKey
+        )
+
+        if(_e.size) {
+            obj.setDisplaySize(_e.size, _e.size)
         }
+
+        _mWorld.addComponent(_e, "spriteObject", obj)
     })
-    planck.body.createFixture({
-        shape: new Circle(toMeters(size)),
-        density : 0.5,
-        friction : 0.3,
-        restitution : 0.4
+
+    return unsub
+}
+
+export const pinBallBodyCreationSubscription = (_pWorld: World, _mWorld: MWorld) => {
+    // returns the unsubscribe function
+    return queries.ballBodyConfig.onEntityAdded.subscribe(_e => {
+        const {ballConfig, position} = _e
+
+        const body = _pWorld.createDynamicBody({
+            type: "dynamic",
+            bullet: true,
+            position: {
+                x: toMeters(position.x),
+                y: toMeters(position.y)
+            }
+        })
+
+        body.createFixture({
+            shape: new Circle(toMeters(_e.size/2)),
+            density: ballConfig.density,
+            friction: ballConfig.friction,
+            restitution: ballConfig.restitution 
+        })
+
+        _mWorld.addComponent(_e, "ballBody", body)
     })
-    planck.body.setUserData({
-        id: _mWorld.id(_e)
+}
+
+export const polygonCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
+    // returns the unsubscribe function
+    return queries.pPolygonConfigs.onEntityAdded.subscribe(_e => {
+        const renderCord = _e.points.map(value => {
+            return {
+                x: value.x * _scene.scale.width,
+                y: value.y * _scene.scale.height
+            }
+        })
+
+        const obj = _scene.add.polygon(
+            _e.position.x,
+            _e.position.y,
+            renderCord
+        ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
+        .setOrigin(0, 0)
+        .setClosePath(_e.isClosedPath)
+
+        _mWorld.addComponent(_e, "polygonObject", obj)
     })
 }
 
@@ -169,7 +205,7 @@ export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWor
         
         _pWorld.createJoint(revoluteJoint)
         
-        mWorld.addComponent(_e, "planckRevolute", revoluteJoint)
+        _mWorld.addComponent(_e, "planckRevolute", revoluteJoint)
     }
 
     _mWorld.addComponent(_e, "renderShape", shape)
