@@ -66,22 +66,30 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
         // }
     }
 
-    for (const entity of queries.flipperShape) {
-        const {planck} = entity
-        if(planck.body) {
-            const phaserScale = {
-                x: toPixels(planck.body?.getPosition().x),
-                y: toPixels(planck.body?.getPosition().y)
-            }
-            entity.renderShape.setPosition(
-                phaserScale.x,
-                phaserScale.y,
-            )
-            entity.position = phaserScale
+    // for (const entity of queries.flipperShape) {
+    //     const {planck} = entity
+    //     if(planck.body) {
+    //         const phaserScale = {
+    //             x: toPixels(planck.body?.getPosition().x),
+    //             y: toPixels(planck.body?.getPosition().y)
+    //         }
+    //         entity.renderShape.setPosition(
+    //             phaserScale.x,
+    //             phaserScale.y,
+    //         )
+    //         entity.position = phaserScale
 
-            const bodyAngle = planck.body?.getAngle()
-            entity.renderShape.rotation = bodyAngle
-            entity.angle = bodyAngle
+    //         const bodyAngle = planck.body?.getAngle()
+    //         entity.renderShape.rotation = bodyAngle
+    //         entity.angle = bodyAngle
+    //     }
+    // }
+}
+
+export const testDespawnSys = (_mWorld: MWorld, _scene: Scene) => {
+    for (const entity of queries.balls) {
+        if(entity.position.y > _scene.scale.height * 0.8) {
+            _mWorld.remove(entity)
         }
     }
 }

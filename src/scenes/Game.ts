@@ -12,14 +12,20 @@ import { mWorld } from '../ecs/mWorld';
 import { queries } from '../ecs/queries';
 import { 
     audioHandlingSys, 
-    onBallEntityCreated, 
-    onWallEntityCreated, 
-    onFlipperEntityCreated, 
-    onPlanckEntityRemoved, 
-    onShrinkAdded,
+    // onBallEntityCreated, 
+    // onWallEntityCreated, 
+    // onFlipperEntityCreated, 
+    // onPlanckEntityRemoved, 
+    // onShrinkAdded,
     onMarkerAdded,
     spriteCreationSubscription,
-    pinBallBodyCreationSubscription
+    pinBallBodyCreationSubscription,
+    spriteRemovalSubscription,
+    pinBallBodyRemovalSubscription,
+    polygonCreationSubscription,
+    polygonRemovalSubscription,
+    wallBodyCreationSubscription,
+    wallBodyRemovalSubscription
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -29,7 +35,8 @@ import {
     explosionPhysicsSys, 
     keyBoardInputSys, 
     syncSpritePhysicsSys,
-    moveSpriteThruPositionCompSystem
+    moveSpriteThruPositionCompSystem,
+    testDespawnSys
 } from '../ecs/systems';
 import { generateVerticesForRound, toSceneScale } from '../plankUtils';
 export class Game extends Scene
@@ -46,6 +53,8 @@ export class Game extends Scene
     WKey: Phaser.Input.Keyboard.Key | undefined
 
     keysGroup: Phaser.Input.Keyboard.Key[]
+
+    unsubscribeFnGroup: (() => void)[]
 
     // startTime: Date
 
@@ -75,6 +84,8 @@ export class Game extends Scene
 
         this.AKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
 
+        this.WKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.W)
+
         this.DKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
 
         // this is the collision listener used to process contacts
@@ -92,40 +103,38 @@ export class Game extends Scene
         // }
         
         // the unsub function is working
-        this.spriteCreateUnsub = spriteCreationSubscription(mWorld, this)
-        this.pinBallCreateUnsub = pinBallBodyCreationSubscription(this.world, mWorld)
+        this.activateSubs()
 
-        // for walls and also with void type
-        if(!queries.walls.onEntityAdded.subscribers.size) {
-            queries.walls.onEntityAdded.subscribe((entity) => {
-                onWallEntityCreated(entity, this.world, mWorld, this)
-            })
-        }
+        // // for walls and also with void type
+        // if(!queries.walls.onEntityAdded.subscribers.size) {
+        //     queries.walls.onEntityAdded.subscribe((entity) => {
+        //         onWallEntityCreated(entity, this.world, mWorld, this)
+        //     })
+        // }
 
-        // subscription to flippers entity creation
-        if(!queries.flippers.onEntityAdded.subscribers.size) {
-            queries.flippers.onEntityAdded.subscribe((entity) => {
-                onFlipperEntityCreated(entity, this.world, mWorld, this)
-            })
-        }
+        // // subscription to flippers entity creation
+        // if(!queries.flippers.onEntityAdded.subscribers.size) {
+        //     queries.flippers.onEntityAdded.subscribe((entity) => {
+        //         onFlipperEntityCreated(entity, this.world, mWorld, this)
+        //     })
+        // }
         
-        if(!queries.planckBody.onEntityRemoved.subscribers.size) {
-            queries.planckBody.onEntityRemoved.subscribe(entity => {
-                onPlanckEntityRemoved(entity, this.world, mWorld, this)
-            })
-        }
+        // if(!queries.planckBody.onEntityRemoved.subscribers.size) {
+        //     queries.planckBody.onEntityRemoved.subscribe(entity => {
+        //         onPlanckEntityRemoved(entity, this.world, mWorld, this)
+        //     })
+        // }
 
-        if(!queries.shrinkables.onEntityAdded.subscribers.size) {
-            queries.shrinkables.onEntityAdded.subscribe(e =>{
-                onShrinkAdded(e, mWorld, this)
-            })
-        }
+        // if(!queries.shrinkables.onEntityAdded.subscribers.size) {
+        //     queries.shrinkables.onEntityAdded.subscribe(e =>{
+        //         onShrinkAdded(e, mWorld, this)
+        //     })
+        // }
 
         queries.marker.onEntityAdded.subscribe(e => {
             onMarkerAdded(e, mWorld, this)
         })
         
-
         eventsCenter.once(CUSTOM_EVENTS.GAME_OVER, this.on_gameover, this)
 
         this.createWall()
@@ -164,6 +173,50 @@ export class Game extends Scene
         })
         
         eventsCenter.emit(CUSTOM_EVENTS.GAME_STARTED)
+    }
+
+    // method to be executed at each frame
+    update(totalTime : number, deltaTime : number) : void {  
+        
+        // advance the simulation
+        this.world.step(deltaTime / 1000, 10, 8);
+        this.world.clearForces();
+
+        // sizeAdjustmentSys(this.world, mWorld, this)
+
+        // spawnerSystem(this)
+        moveSpriteThruPositionCompSystem()
+        
+        // flippablesSys(this.world, mWorld, this)
+        // handleContactDataSys(this.world, mWorld, this)
+        // particleEffectSys(mWorld, this, this.emittersClass)
+        // explosionPhysicsSys(this.world, mWorld, this)
+        keyBoardInputSys(mWorld, this)
+        syncSpritePhysicsSys(this.world, mWorld, this)
+        testDespawnSys(mWorld, this)
+    } 
+
+    activateSubs() {
+        
+        const inputArg = {_mWorld: mWorld, _pWorld: this.world, _scene: this}
+
+        this.unsubscribeFnGroup = [
+            spriteCreationSubscription(inputArg),
+            spriteRemovalSubscription(),
+            pinBallBodyCreationSubscription(inputArg),
+            pinBallBodyRemovalSubscription(inputArg),
+            polygonCreationSubscription(inputArg),
+            polygonRemovalSubscription(),
+            wallBodyCreationSubscription(inputArg),
+            wallBodyRemovalSubscription(inputArg)
+        ]
+
+    }
+
+    deactivateSubs() {
+        for (let i in this.unsubscribeFnGroup) {
+            this.unsubscribeFnGroup[i]()
+        }
     }
 
     createSpawner() {
@@ -315,22 +368,24 @@ export class Game extends Scene
 
     createWall() {
         mWorld.add({
-            position: {x: 0, y: 0},
+            isClosedPath: false,
+            bouncy: 0,
             wall: true,
             points: GameOptions.boundingPoints.wall,
         })
 
         // make the pyramid bump
-        // mWorld.add({
-        //     position: {x: 0, y: 0},
-        //     wall: true,
-        //     points: GameOptions.boundingPoints.bump,
-        // })
+        mWorld.add({
+            wall: true,
+            bouncy: 0,
+            isClosedPath: false,
+            points: GameOptions.boundingPoints.bump,
+        })
 
         // bumper
         mWorld.add({
-            position: {x: 0, y: 0},
-            wall: true,
+            isClosedPath: true,
+            bumper: true,
             bouncy: 1.1,
             points: toSceneScale(
                 generateVerticesForRound(
@@ -399,23 +454,5 @@ export class Game extends Scene
         
     }
 
-    // method to be executed at each frame
-    update(totalTime : number, deltaTime : number) : void {  
-        
-        // advance the simulation
-        this.world.step(deltaTime / 1000, 10, 8);
-        this.world.clearForces();
-
-        sizeAdjustmentSys(this.world, mWorld, this)
-
-        // spawnerSystem(this)
-        moveSpriteThruPositionCompSystem()
-        
-        flippablesSys(this.world, mWorld, this)
-        handleContactDataSys(this.world, mWorld, this)
-        particleEffectSys(mWorld, this, this.emittersClass)
-        explosionPhysicsSys(this.world, mWorld, this)
-        keyBoardInputSys(mWorld, this)
-        syncSpritePhysicsSys(this.world, mWorld, this)
-    } 
+    
 }

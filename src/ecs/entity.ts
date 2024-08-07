@@ -36,15 +36,15 @@ export type Entity = {
         height: number,
         color: number
     },
-    rectBodyTag: true,
-    flipperSide: "left" | "right",
-    revoluteJointConfig: {
+    rectBodyTag?: true,
+    flipperSide?: "left" | "right",
+    revoluteJointConfig?: {
         anchorPoint: {x: number, y: number},
         maxMotorTorque: number,
         lowAngle: number,
         highAngle: number,
     },
-    revJoint: RevoluteJoint,
+    revJoint?: RevoluteJoint,
     motorSpeed?: number,
     ///
     audio?: string,
@@ -56,6 +56,7 @@ export type Entity = {
     ball?: true,
     ballRank?: number,
     wall?: true,
+    bumper?: true,
     // flipperConfig?: {
     //     side: "left" | "right",
     //     width: number,
