@@ -11,6 +11,7 @@ export const queries = {
     wallBodyConfigs: mWorld.with("wall", "points", "bouncy", "isClosedPath").without("position"),
     wallBodies: mWorld.with("wallBody"),
     rectConfigs: mWorld.with("rectConfig", "position"),
+    rectBodyConfigs: mWorld.with("rectBodyTag", "rectConfig", "position"),
     rects: mWorld.with("rectObject"),
     rectBodies: mWorld.with("rectBody"),
     balls: mWorld.with("ball", "spriteObject", "ballBody"),

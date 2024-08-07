@@ -36,6 +36,7 @@ export type Entity = {
         height: number,
         color: number
     },
+    rectBodyTag: true,
     flipperSide: "left" | "right",
     revoluteJointConfig: {
         anchorPoint: {x: number, y: number},

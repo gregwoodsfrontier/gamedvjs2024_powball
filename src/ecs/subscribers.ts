@@ -1,5 +1,5 @@
 import { Scene } from "phaser"
-import { World, Circle, Chain, Box, RevoluteJoint } from "planck"
+import { World, Circle, Chain, Box, RevoluteJoint, Vec2 } from "planck"
 import { GameOptions } from "../gameOptions"
 import { toMeters } from "../plankUtils"
 import { Entity } from "./entity"
@@ -161,12 +161,35 @@ export const rectShapeRemovalSubscription = () => {
     })
 }
 
-export const rectBodyCreationSubscription = () => {
-    
+export const rectBodyCreationSubscription = (_pWorld: World, _mWorld: MWorld) => {
+    return queries.rectBodyConfigs.onEntityAdded.subscribe(entity => {
+        const {position, rectConfig} = entity
+        const body = _pWorld.createBody({
+            position: Vec2(
+                toMeters(position.x),
+                toMeters(position.y)
+            ),
+            type: "dynamic"
+        })
+        body.createFixture({
+            shape: new Box(
+                toMeters(rectConfig.width),
+                toMeters(rectConfig.height)
+            ),
+            density: 1
+        })
+        body.setUserData({
+            id: _mWorld.id(entity)
+        })
+
+        _mWorld.addComponent(entity, "rectBody", body)
+    })
 }
 
-export const rectBodyRemovalSubscription = () => {
-    
+export const rectBodyRemovalSubscription = (_pWorld: World) => {
+    return queries.rectBodies.onEntityRemoved.subscribe(entity => {
+        _pWorld.destroyBody(entity.rectBody)
+    })
 }
 
 // export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
@@ -373,15 +396,15 @@ export const audioHandlingSys = {
 }
 
 // an Addition subscriber that makes a circular wall called a bumper
-export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    if (_e.bouncy) {
-        _e.planck?.body?.getFixtureList()?.setRestitution(
-            _e.bouncy
-        )
-        console.log("bouncy is implemented")
-        console.table(_e.planck?.body?.getFixtureList())
-    }
-}
+// export const onBumperCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+//     if (_e.bouncy) {
+//         _e.planck?.body?.getFixtureList()?.setRestitution(
+//             _e.bouncy
+//         )
+//         console.log("bouncy is implemented")
+//         console.table(_e.planck?.body?.getFixtureList())
+//     }
+// }
 
 export const onMarkerAdded = (entity: Entity, _mWorld: MWorld, _scene: Scene) => {
     const { position, sprite } =  entity
