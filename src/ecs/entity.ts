@@ -21,36 +21,54 @@ export type Entity = {
     ///
     isClosedPath?: boolean,
     polygonObject?: GameObjects.Polygon,
-    rectObj?: GameObjects.Rectangle,
+    rectObject?: GameObjects.Rectangle,
     ballConfig?: {
         density: number,
         friction: number,
         restitution: number
     },
     ballBody?: Body,
+    bouncy?: number,
+    wallBody?: Body,
+    rectBody?: Body,
+    rectConfig?: {
+        width: number, 
+        height: number,
+        color: number
+    },
+    flipperSide: "left" | "right",
+    revoluteJointConfig: {
+        anchorPoint: {x: number, y: number},
+        maxMotorTorque: number,
+        lowAngle: number,
+        highAngle: number,
+    },
+    revJoint: RevoluteJoint,
+    motorSpeed?: number,
     ///
     audio?: string,
-    planck?: {
-        body?: Body,
-        bodyType?: "chain" | "circle"
-        isStatic?: boolean
-    },
-    ball?: boolean,
+    // planck?: {
+    //     body?: Body,
+    //     bodyType?: "chain" | "circle"
+    //     isStatic?: boolean
+    // },
+    ball?: true,
     ballRank?: number,
-    wall?: boolean,
-    flippers?: {
-        side: "left" | "right",
-        width: number,
-        height: number,
-        color?: number,
-        anchorPoint: {
-            x: number,
-            y: number
-        }
-    },
-    motorSpeed?: number,
-    void?: boolean
-    planckRevolute?: RevoluteJoint,
+    wall?: true,
+    // flipperConfig?: {
+    //     side: "left" | "right",
+    //     width: number,
+    //     height: number,
+    //     color?: number,
+    //     anchorPoint: {
+    //         x: number,
+    //         y: number
+    //     }
+    // },
+    // flipperBody: Body,
+    // flipperJoint: RevoluteJoint,
+    voidZone?: boolean
+    // planckRevolute?: RevoluteJoint,
     // for contact data
     contactPoint?: {
         x: number; y: number
@@ -84,7 +102,7 @@ export type Entity = {
         sizeRank: number
     }
     // for bumpers
-    bouncy?: number,
+    
     marker?: true,
     movable?: true,
     tween?: Phaser.Tweens.Tween

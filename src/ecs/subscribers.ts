@@ -5,9 +5,10 @@ import { toMeters } from "../plankUtils"
 import { Entity } from "./entity"
 import { queries } from "./queries"
 import { World as MWorld } from 'miniplex'
+import { mWorld } from "./mWorld"
 
 export const spriteCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
-    const unsub = queries.spriteConfigs.onEntityAdded.subscribe(_e => {
+    return queries.spriteConfigs.onEntityAdded.subscribe(_e => {
         const obj =_scene.add.sprite(
             _e.position.x,
             _e.position.y,
@@ -20,13 +21,17 @@ export const spriteCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
 
         _mWorld.addComponent(_e, "spriteObject", obj)
     })
+}
 
-    return unsub
+export const spriteRemovalSubscription = () => {
+    return queries.sprites.onEntityRemoved.subscribe(entity => {
+        entity.spriteObject.destroy(true)
+    })
 }
 
 export const pinBallBodyCreationSubscription = (_pWorld: World, _mWorld: MWorld) => {
     // returns the unsubscribe function
-    return queries.ballBodyConfig.onEntityAdded.subscribe(_e => {
+    return queries.ballBodyConfigs.onEntityAdded.subscribe(_e => {
         const {ballConfig, position} = _e
 
         const body = _pWorld.createDynamicBody({
@@ -44,10 +49,25 @@ export const pinBallBodyCreationSubscription = (_pWorld: World, _mWorld: MWorld)
             friction: ballConfig.friction,
             restitution: ballConfig.restitution 
         })
+        body.setUserData({
+            id: _mWorld.id(_e)
+        })
 
         _mWorld.addComponent(_e, "ballBody", body)
     })
 }
+
+export const pinBallBodyRemovalSubscription = (_pWorld: World, _mWorld: MWorld) => {
+    // returns the unsubscribe function
+    return queries.ballBodies.onEntityRemoved.subscribe(entity => {
+        const fix = entity.ballBody.getFixtureList()
+        if(fix) {
+            entity.ballBody.destroyFixture(fix)
+        }
+        _pWorld.destroyBody(entity.ballBody)
+    })
+}
+
 
 export const polygonCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
     // returns the unsubscribe function
@@ -60,8 +80,8 @@ export const polygonCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
         })
 
         const obj = _scene.add.polygon(
-            _e.position.x,
-            _e.position.y,
+            0,
+            0,
             renderCord
         ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
         .setOrigin(0, 0)
@@ -71,78 +91,152 @@ export const polygonCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
     })
 }
 
-export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {sprite, planck, renderShape} = _e
-    
-    if(sprite && sprite.gameobj) {
-        sprite.gameobj?.destroy(true)
-    }
-    
-    if(planck && planck.body) {
-        _pWorld.destroyBody(planck.body)
-    }
-
-    if(renderShape) {
-        renderShape.destroy(true)
-    }
+export const polygonRemovalSubscription = () => {
+    return queries.pPolygons.onEntityRemoved.subscribe(entity => {
+        entity.polygonObject.destroy(true)
+    })
 }
+
+export const wallBodyCreationSubscription = (_pWorld:World, _mWorld: MWorld, _scene: Scene) => {
+    return queries.wallBodyConfigs.onEntityAdded.subscribe(entity => {
+        const {points, bouncy, isClosedPath} = entity
+
+        const renderCord = points.map(value => {
+            return {
+                x: value.x * _scene.scale.width,
+                y: value.y * _scene.scale.height
+            }
+        })
+
+        const body = _pWorld.createBody({
+            type: "static"
+        })
+        const planckCord = renderCord.map(value => {
+            return {
+                x: toMeters(value.x),
+                y: toMeters(value.y)
+            }
+        })
+        body.createFixture({
+            shape: new Chain(planckCord, isClosedPath),
+            restitution: bouncy
+        })
+        body.setUserData({
+            id: _mWorld.id(entity)
+        })
+
+        _mWorld.addComponent(entity, "wallBody", body)
+    })
+}
+
+export const wallBodyRemovalSubscription = (_pWorld: World, _mWorld: MWorld) => {
+    // returns the unsubscribe function
+    return queries.wallBodies.onEntityRemoved.subscribe(entity => {
+        const fix = entity.wallBody.getFixtureList()
+        if(fix) {
+            entity.wallBody.destroyFixture(fix)
+        }
+        _pWorld.destroyBody(entity.wallBody)
+    })
+}
+
+export const rectShapeCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
+    return queries.rectConfigs.onEntityAdded.subscribe(entity => {
+        const {position, rectConfig} = entity
+        const shape = _scene.add.rectangle(
+            position.x,
+            position.y,
+            rectConfig.width,
+            rectConfig.height,
+            rectConfig.color
+        )
+        
+        _mWorld.addComponent(entity, "rectObject", shape)
+    })
+}
+
+export const rectShapeRemovalSubscription = () => {
+    return queries.rects.onEntityRemoved.subscribe(entity => {
+        entity.rectObject.destroy(true)
+    })
+}
+
+export const rectBodyCreationSubscription = () => {
+    
+}
+
+export const rectBodyRemovalSubscription = () => {
+    
+}
+
+// export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+//     const {sprite, planck, renderShape} = _e
+    
+//     if(planck && planck.body) {
+//         _pWorld.destroyBody(planck.body)
+//     }
+
+//     if(renderShape) {
+//         renderShape.destroy(true)
+//     }
+// }
 
 // make a function to create wall in game from entities
-export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {position, points} = _e
-    if(!points || !position) return
+// export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
+//     const {position, points} = _e
+//     if(!points || !position) return
 
-    const renderCord = points.map(value => {
-        return {
-            x: value.x * _scene.scale.width,
-            y: value.y * _scene.scale.height
-        }
-    })
+//     const renderCord = points.map(value => {
+//         return {
+//             x: value.x * _scene.scale.width,
+//             y: value.y * _scene.scale.height
+//         }
+//     })
     
-    const shape = _scene.add.polygon(
-        position.x,
-        position.y,
-        renderCord
-    ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
-    .setOrigin(0, 0)
-    .setClosePath(false)
+//     const shape = _scene.add.polygon(
+//         position.x,
+//         position.y,
+//         renderCord
+//     ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
+//     .setOrigin(0, 0)
+//     .setClosePath(false)
 
-    _mWorld.addComponent(_e, "renderShape", shape)
+//     _mWorld.addComponent(_e, "renderShape", shape)
 
-    const _body = _pWorld.createBody({
-        type: "static"
-    })
-    const planckCord = renderCord.map(value => {
-        return {
-            x: toMeters(value.x),
-            y: toMeters(value.y)
-        }
-    })
+//     const _body = _pWorld.createBody({
+//         type: "static"
+//     })
+//     const planckCord = renderCord.map(value => {
+//         return {
+//             x: toMeters(value.x),
+//             y: toMeters(value.y)
+//         }
+//     })
 
-    if(_e.bouncy) {
-        _body.createFixture({
-            shape: Chain(planckCord, false),
-            restitution: _e.bouncy
-        })
-    } else {
-        _body.createFixture({
-            shape: Chain(planckCord, false)
-        })
-    }
+//     if(_e.bouncy) {
+//         _body.createFixture({
+//             shape: Chain(planckCord, false),
+//             restitution: _e.bouncy
+//         })
+//     } else {
+//         _body.createFixture({
+//             shape: Chain(planckCord, false)
+//         })
+//     }
 
-    _body.setUserData({
-        id: _mWorld.id(_e)
-    })
+//     _body.setUserData({
+//         id: _mWorld.id(_e)
+//     })
 
-    _mWorld.addComponent(_e, "planck", {
-        body: _body,
-        bodyType: "chain"
-    })
-}
+//     _mWorld.addComponent(_e, "planck", {
+//         body: _body,
+//         bodyType: "chain"
+//     })
+// }
 
 // function that create flippers based on subscription
 export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    const {position, planck, flippers} = _e
+    const {position, planck, flipperConfig: flippers} = _e
 
     if(!flippers || !position) return
 

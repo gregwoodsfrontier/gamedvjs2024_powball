@@ -219,7 +219,7 @@ export class Game extends Scene
         }
 
         // check if ball contact with the void, despawn the ball
-        if( (entityA?.void && entityB?.ball) || (entityA?.ball && entityB?.void) ) {
+        if( (entityA?.voidZone && entityB?.ball) || (entityA?.ball && entityB?.voidZone) ) {
             mWorld.add({
                 contactPoint: contactPoint,
                 contactEntityA: entityA,
@@ -235,15 +235,15 @@ export class Game extends Scene
                 x: 0, y: 0
             },
             points: GameOptions.boundingPoints.void,
-            void: true,
+            voidZone: true,
             wall: true
         })
     }
 
     createFlippers() {
         const {width, height} = this.scale
-        const flipperW = 65
-        const flipperH = 10
+        const flipperW = 65*2
+        const flipperH = 10*2
         const leftAnchor = {
             x: GameOptions.boundingPoints.wall[1].x * width,
             y: GameOptions.boundingPoints.wall[1].y * height
