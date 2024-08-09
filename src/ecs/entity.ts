@@ -29,7 +29,7 @@ export type Entity = {
     },
     ballBody?: Body,
     bouncy?: number,
-    wallBody?: Body,
+    chainBody?: Body,
     rectBody?: Body,
     rectConfig?: {
         width: number, 
@@ -38,7 +38,9 @@ export type Entity = {
     },
     rectBodyTag?: true,
     flipperSide?: "left" | "right",
-    revoluteJointConfig?: {
+    revJointConfig?: {
+        enableMotor: boolean,
+        enableLimit: boolean,
         anchorPoint: {x: number, y: number},
         maxMotorTorque: number,
         lowAngle: number,

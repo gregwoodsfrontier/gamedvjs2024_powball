@@ -11,13 +11,7 @@ import { BodyUserData } from '../bodyUserData';
 import { mWorld } from '../ecs/mWorld';
 import { queries } from '../ecs/queries';
 import { 
-    audioHandlingSys, 
-    // onBallEntityCreated, 
-    // onWallEntityCreated, 
-    // onFlipperEntityCreated, 
-    // onPlanckEntityRemoved, 
-    // onShrinkAdded,
-    onMarkerAdded,
+    audioHandlingSys,
     spriteCreationSubscription,
     pinBallBodyCreationSubscription,
     spriteRemovalSubscription,
@@ -25,7 +19,14 @@ import {
     polygonCreationSubscription,
     polygonRemovalSubscription,
     wallBodyCreationSubscription,
-    wallBodyRemovalSubscription
+    wallBodyRemovalSubscription,
+    rectShapeCreationSubscription,
+    rectShapeRemovalSubscription,
+    rectBodyCreationSubscription,
+    rectBodyRemovalSubscription,
+    revoluteJointRemovalSubscription,
+    revoluteJointCreationSubscription,
+    onMarkerAdded
 } from '../ecs/subscribers';
 import { 
     sizeAdjustmentSys, 
@@ -35,7 +36,7 @@ import {
     explosionPhysicsSys, 
     keyBoardInputSys, 
     syncSpritePhysicsSys,
-    moveSpriteThruPositionCompSystem,
+    moveSpriteThruPositionCompSys,
     testDespawnSys
 } from '../ecs/systems';
 import { generateVerticesForRound, toSceneScale } from '../plankUtils';
@@ -64,9 +65,6 @@ export class Game extends Scene
 
     winCon: number
 
-    spriteCreateUnsub: () => void
-    pinBallCreateUnsub: () => void
-
     // method to be called once the instance has been created
     create(data: {wincon: number}) : void {
 
@@ -93,43 +91,9 @@ export class Game extends Scene
 
         audioHandlingSys.onAdd(this)
         audioHandlingSys.onRemove(this)
-
-        // using miniplex to spawn game objects instead of coding inside scenes
-        // for balls
-        // if(!queries.balls.onEntityAdded.subscribers.size) {
-        //     queries.balls.onEntityAdded.subscribe((entity) => {
-        //         onBallEntityCreated(entity, this.world, mWorld, this)
-        //     })
-        // }
         
         // the unsub function is working
         this.activateSubs()
-
-        // // for walls and also with void type
-        // if(!queries.walls.onEntityAdded.subscribers.size) {
-        //     queries.walls.onEntityAdded.subscribe((entity) => {
-        //         onWallEntityCreated(entity, this.world, mWorld, this)
-        //     })
-        // }
-
-        // // subscription to flippers entity creation
-        // if(!queries.flippers.onEntityAdded.subscribers.size) {
-        //     queries.flippers.onEntityAdded.subscribe((entity) => {
-        //         onFlipperEntityCreated(entity, this.world, mWorld, this)
-        //     })
-        // }
-        
-        // if(!queries.planckBody.onEntityRemoved.subscribers.size) {
-        //     queries.planckBody.onEntityRemoved.subscribe(entity => {
-        //         onPlanckEntityRemoved(entity, this.world, mWorld, this)
-        //     })
-        // }
-
-        // if(!queries.shrinkables.onEntityAdded.subscribers.size) {
-        //     queries.shrinkables.onEntityAdded.subscribe(e =>{
-        //         onShrinkAdded(e, mWorld, this)
-        //     })
-        // }
 
         queries.marker.onEntityAdded.subscribe(e => {
             onMarkerAdded(e, mWorld, this)
@@ -141,20 +105,20 @@ export class Game extends Scene
 
         this.createFlippers()
 
-        this.createVoid()
-
         this.createSpawner()
 
         // test spawner event
         this.time.addEvent({
-            delay: 1000,
+            delay: 500,
             loop: true,
             callback: () => {
-                const randomX = Phaser.Math.Between(25, 75) * 0.01  * this.scale.width
+                const spawner = queries.marker.entities[0]
+
+                if(!spawner) return
 
                 mWorld.add({
                     position: {
-                        x: randomX,
+                        x: spawner.position.x,
                         y: 100
                     },
                     ball: true,
@@ -185,9 +149,9 @@ export class Game extends Scene
         // sizeAdjustmentSys(this.world, mWorld, this)
 
         // spawnerSystem(this)
-        moveSpriteThruPositionCompSystem()
+        moveSpriteThruPositionCompSys()
         
-        // flippablesSys(this.world, mWorld, this)
+        flippablesSys(this.world, mWorld, this)
         // handleContactDataSys(this.world, mWorld, this)
         // particleEffectSys(mWorld, this, this.emittersClass)
         // explosionPhysicsSys(this.world, mWorld, this)
@@ -208,7 +172,13 @@ export class Game extends Scene
             polygonCreationSubscription(inputArg),
             polygonRemovalSubscription(),
             wallBodyCreationSubscription(inputArg),
-            wallBodyRemovalSubscription(inputArg)
+            wallBodyRemovalSubscription(inputArg),
+            rectShapeCreationSubscription(inputArg),
+            rectShapeRemovalSubscription(),
+            rectBodyCreationSubscription(inputArg),
+            rectBodyRemovalSubscription(inputArg),
+            revoluteJointCreationSubscription(inputArg),
+            revoluteJointRemovalSubscription(inputArg)
         ]
 
     }
@@ -226,15 +196,11 @@ export class Game extends Scene
                 y: 100
             },
             angle: 0,
-            sprite: {
-                key: "golf"
-            },
+            spriteKey: 'golf',
             marker: true,
             movable: true
         })
     }
-
-    
 
     onPlanckWorldPreSolve(contact: Contact) {
         // get the entity from the balls
@@ -282,17 +248,6 @@ export class Game extends Scene
         }
     }
 
-    createVoid() {
-        mWorld.add({
-            position: {
-                x: 0, y: 0
-            },
-            points: GameOptions.boundingPoints.void,
-            voidZone: true,
-            wall: true
-        })
-    }
-
     createFlippers() {
         const {width, height} = this.scale
         const flipperW = 65*2
@@ -307,62 +262,70 @@ export class Game extends Scene
         }
         const leftFlipper = mWorld.add({
             position: {
-                x: leftAnchor.x + flipperW,
-                y: leftAnchor.y + flipperH
+                x: leftAnchor.x + flipperW/2,
+                y: leftAnchor.y + flipperH/2
             },
-            flippers: {
-                side: "left",
+            rectBodyTag: true,
+            rectConfig: {
                 width: flipperW,
                 height: flipperH,
                 color: 0x00ecff,
-                anchorPoint: leftAnchor
             },
-            planck: {
-                isStatic: false
+            flipperSide: "left",
+            revJointConfig: {
+                enableLimit: true,
+                enableMotor: true,
+                anchorPoint: leftAnchor,
+                maxMotorTorque: 7500,
+                lowAngle: GameOptions.flipperConfig.left.lowAngle,
+                highAngle: GameOptions.flipperConfig.left.highAngle
             },
             motorSpeed: 0,
-            audioKey: 'flip-left'
-        })
-
-        mWorld.addComponent(leftFlipper, "keyBoardKey", this.AKey)
-        mWorld.addComponent(leftFlipper, "onKeyDown", () => {
-            leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
-        })
-        mWorld.addComponent(leftFlipper, "onKeyUp", () => {
-            leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
-        })
-        mWorld.addComponent(leftFlipper, "onKeyJustDown", () => {
-            this.sound.get(leftFlipper.audioKey).play()
+            audioKey: 'flip-left',
+            keyBoardKey: this.AKey,
+            onKeyDown: () => {
+                leftFlipper.motorSpeed = GameOptions.flipperConfig.left.activateSpeed
+            },
+            onKeyUp: () => {
+                leftFlipper.motorSpeed = -GameOptions.flipperConfig.left.releaseSpeed
+            },
+            onKeyJustDown: () => {
+                this.sound.get(leftFlipper.audioKey).play()
+            }
         })
 
         const rightFlipper = mWorld.add({
             position: {
-                x: rightAnchor.x - flipperW,
-                y: rightAnchor.y + flipperH
+                x: rightAnchor.x - flipperW/2,
+                y: rightAnchor.y + flipperH/2
             },
-            flippers: {
-                side: "right",
+            flipperSide: 'right',
+            rectBodyTag: true,
+            rectConfig: {
                 width: flipperW,
                 height: flipperH,
                 color: 0x00ecff,
-                anchorPoint: rightAnchor
             },
-            planck: {
-                isStatic: false
+            revJointConfig: {
+                enableLimit: true,
+                enableMotor: true,
+                anchorPoint: rightAnchor,
+                maxMotorTorque: 7500,
+                lowAngle: GameOptions.flipperConfig.right.lowAngle,
+                highAngle: GameOptions.flipperConfig.right.highAngle
             },
             motorSpeed: 0,
-            audioKey: 'flip-right'
-        })
-
-        mWorld.addComponent(rightFlipper, "keyBoardKey", this.DKey)
-        mWorld.addComponent(rightFlipper, "onKeyDown", () => {
-            rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
-        })
-        mWorld.addComponent(rightFlipper, "onKeyUp", () => {
-            rightFlipper.motorSpeed = GameOptions.flipperConfig.right.releaseSpeed
-        })
-        mWorld.addComponent(rightFlipper, "onKeyJustDown", () => {
-            this.sound.get(rightFlipper.audioKey).play()
+            audioKey: 'flip-right',
+            keyBoardKey: this.DKey,
+            onKeyDown: () => {
+                rightFlipper.motorSpeed = -GameOptions.flipperConfig.right.activateSpeed
+            },
+            onKeyUp: () => {
+                rightFlipper.motorSpeed = GameOptions.flipperConfig.right.releaseSpeed
+            },
+            onKeyJustDown:() => {
+                this.sound.get(rightFlipper.audioKey).play()
+            }
         })
     }
 
@@ -375,12 +338,12 @@ export class Game extends Scene
         })
 
         // make the pyramid bump
-        mWorld.add({
-            wall: true,
-            bouncy: 0,
-            isClosedPath: false,
-            points: GameOptions.boundingPoints.bump,
-        })
+        // mWorld.add({
+        //     wall: true,
+        //     bouncy: 0,
+        //     isClosedPath: false,
+        //     points: GameOptions.boundingPoints.bump,
+        // })
 
         // bumper
         mWorld.add({
@@ -424,9 +387,13 @@ export class Game extends Scene
         }
     }
 
-    on_gameover(_totalScore: number) {
+    async on_gameover(_totalScore: number) {
 
-        mWorld.clear()
+        await mWorld.clear()
+
+        console.log(mWorld.entities)
+
+        this.deactivateSubs()
 
         this.world.off('pre-solve', this.onPlanckWorldPreSolve);
 

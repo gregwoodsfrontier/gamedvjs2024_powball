@@ -17,21 +17,21 @@ import { World as MWorld } from 'miniplex'
 //     }
 // }
 
-export const moveSpriteThruPositionCompSystem = () => {
+export const moveSpriteThruPositionCompSys = () => {
     for(const e of queries.movableSprites) {
-        if(!e.sprite.gameobj) return
-        e.sprite.gameobj.x = e.position.x
-        e.sprite.gameobj.y = e.position.y
-        e.sprite.gameobj.rotation = e.angle
+        if(!e.spriteObject) return
+        e.spriteObject.x = e.position.x
+        e.spriteObject.y = e.position.y
+        e.spriteObject.rotation = e.angle
     }
 }
 
 // controls the flipper joint motor speed
 export const flippablesSys = (_pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-    for (const entity of queries.isFlippable) {
-        const {motorSpeed, planckRevolute} = entity
+    for (const entity of queries.flippers) {
+        const {motorSpeed, revJoint} = entity
 
-        planckRevolute.setMotorSpeed(motorSpeed)
+        revJoint.setMotorSpeed(motorSpeed)
     }
 }
 
@@ -48,48 +48,27 @@ export const syncSpritePhysicsSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
 
         spriteObject.rotation = ballBody.getAngle()
         entity.angle = ballBody.getAngle()
-        // const {sprite, planck} = entity
-        // if(sprite.gameobj && planck.body) {
-        //     const phaserScale = {
-        //         x: toPixels(planck.body?.getPosition().x),
-        //         y: toPixels(planck.body?.getPosition().y)
-        //     }
-        //     sprite.gameobj?.setPosition(
-        //         phaserScale.x,
-        //         phaserScale.y,
-        //     )
-        //     entity.position = phaserScale
-
-        //     const bodyAngle = planck.body?.getAngle()
-        //     sprite.gameobj.rotation = bodyAngle
-        //     entity.angle = bodyAngle
-        // }
     }
 
-    // for (const entity of queries.flipperShape) {
-    //     const {planck} = entity
-    //     if(planck.body) {
-    //         const phaserScale = {
-    //             x: toPixels(planck.body?.getPosition().x),
-    //             y: toPixels(planck.body?.getPosition().y)
-    //         }
-    //         entity.renderShape.setPosition(
-    //             phaserScale.x,
-    //             phaserScale.y,
-    //         )
-    //         entity.position = phaserScale
+    for (const entity of queries.rectBodies) {
+        const {rectBody, rectObject} = entity
+        const phaserCords = {
+            x: toPixels(rectBody.getPosition().x),
+            y: toPixels(rectBody.getPosition().y)
+        }
+        rectObject.setPosition(phaserCords.x, phaserCords.y)
+        entity.position = phaserCords
 
-    //         const bodyAngle = planck.body?.getAngle()
-    //         entity.renderShape.rotation = bodyAngle
-    //         entity.angle = bodyAngle
-    //     }
-    // }
+        rectObject.rotation = rectBody.getAngle()
+        entity.angle = rectBody.getAngle()
+    }
 }
 
 export const testDespawnSys = (_mWorld: MWorld, _scene: Scene) => {
     for (const entity of queries.balls) {
-        if(entity.position.y > _scene.scale.height * 0.8) {
+        if(entity.position.y > _scene.scale.height * 0.99) {
             _mWorld.remove(entity)
+            eventsCenter.emit(CUSTOM_EVENTS.BALLS_FALLEN)
         }
     }
 }
@@ -177,19 +156,6 @@ export const handleContactDataSys = (_pWorld: World, _mWorld: MWorld, _scene: Sc
                 })
 
                 
-                break
-            }
-
-            case "ballVoid": {
-                // just removing the balls
-                if(contactEntityA.ball) {
-                    _mWorld.remove(contactEntityA)
-                } else if (contactEntityB.ball) {
-                    _mWorld.remove(contactEntityB)
-                }
-
-                eventsCenter.emit(CUSTOM_EVENTS.BALLS_FALLEN)
-
                 break
             }
 

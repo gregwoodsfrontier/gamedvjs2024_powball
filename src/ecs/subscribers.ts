@@ -1,7 +1,7 @@
 import { Scene } from "phaser"
 import { World as PWorld, Circle, Chain, Box, RevoluteJoint, Vec2 } from "planck"
 import { GameOptions } from "../gameOptions"
-import { toMeters } from "../plankUtils"
+import { toMeters, toPixels } from "../plankUtils"
 import { Entity } from "./entity"
 import { queries } from "./queries"
 import { World as MWorld } from 'miniplex'
@@ -130,25 +130,25 @@ export const wallBodyCreationSubscription = (_arg: SubscriptionArgType) => {
             id: _arg._mWorld.id(entity)
         })
 
-        _arg._mWorld.addComponent(entity, "wallBody", body)
+        _arg._mWorld.addComponent(entity, "chainBody", body)
     })
 }
 
 export const wallBodyRemovalSubscription = (_arg: SubscriptionArgType) => {
     // returns the unsubscribe function
     return queries.wallBodies.onEntityRemoved.subscribe(entity => {
-        const fix = entity.wallBody.getFixtureList()
+        const fix = entity.chainBody.getFixtureList()
         if(fix) {
-            entity.wallBody.destroyFixture(fix)
+            entity.chainBody.destroyFixture(fix)
         }
-        _arg._pWorld.destroyBody(entity.wallBody)
+        _arg._pWorld.destroyBody(entity.chainBody)
     })
 }
 
-export const rectShapeCreationSubscription = (_mWorld: MWorld, _scene: Scene) => {
+export const rectShapeCreationSubscription = (_arg: SubscriptionArgType) => {
     return queries.rectConfigs.onEntityAdded.subscribe(entity => {
         const {position, rectConfig} = entity
-        const shape = _scene.add.rectangle(
+        const shape = _arg._scene.add.rectangle(
             position.x,
             position.y,
             rectConfig.width,
@@ -156,7 +156,7 @@ export const rectShapeCreationSubscription = (_mWorld: MWorld, _scene: Scene) =>
             rectConfig.color
         )
         
-        _mWorld.addComponent(entity, "rectObject", shape)
+        _arg._mWorld.addComponent(entity, "rectObject", shape)
     })
 }
 
@@ -170,18 +170,20 @@ export const rectBodyCreationSubscription = (_arg: SubscriptionArgType) => {
     return queries.rectBodyConfigs.onEntityAdded.subscribe(entity => {
         const {position, rectConfig} = entity
         const body = _arg._pWorld.createBody({
-            position: Vec2(
-                toMeters(position.x),
-                toMeters(position.y)
-            ),
-            type: "dynamic"
+            position: {
+                x: toMeters(position.x),
+                y: toMeters(position.y)
+            },
+            type: 'dynamic'
+            // type: "static"
         })
         body.createFixture({
-            shape: new Box(
-                toMeters(rectConfig.width),
-                toMeters(rectConfig.height)
+            shape: Box(
+                toMeters(rectConfig.width/2),
+                toMeters(rectConfig.height/2)
             ),
-            density: 1
+            density: 1,
+            restitution: 0.001,
         })
         body.setUserData({
             id: _arg._mWorld.id(entity)
@@ -197,182 +199,40 @@ export const rectBodyRemovalSubscription = (_arg: SubscriptionArgType) => {
     })
 }
 
-// export const onPlanckEntityRemoved = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-//     const {sprite, planck, renderShape} = _e
-    
-//     if(planck && planck.body) {
-//         _pWorld.destroyBody(planck.body)
-//     }
+export const revoluteJointCreationSubscription = (_arg: SubscriptionArgType) => {
+    return queries.revJointConfigs.onEntityAdded.subscribe(entity => {
+        const {revJointConfig, motorSpeed, rectBody} = entity
 
-//     if(renderShape) {
-//         renderShape.destroy(true)
-//     }
-// }
+        const {chainBody} = queries.walls.entities[0]
 
-// make a function to create wall in game from entities
-// export const onWallEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-//     const {position, points} = _e
-//     if(!points || !position) return
+        const joint = RevoluteJoint(
+            {
+                enableMotor: revJointConfig.enableMotor,
+                enableLimit: revJointConfig.enableLimit,
+                maxMotorTorque: revJointConfig.maxMotorTorque,
+                lowerAngle: revJointConfig.lowAngle,
+                upperAngle: revJointConfig.highAngle,
+                motorSpeed: motorSpeed
+            },
+            rectBody,
+            chainBody,
+            {
+                x: toMeters(revJointConfig.anchorPoint.x),
+                y: toMeters(revJointConfig.anchorPoint.y)
+            }
+        )
 
-//     const renderCord = points.map(value => {
-//         return {
-//             x: value.x * _scene.scale.width,
-//             y: value.y * _scene.scale.height
-//         }
-//     })
-    
-//     const shape = _scene.add.polygon(
-//         position.x,
-//         position.y,
-//         renderCord
-//     ).setStrokeStyle(GameOptions.wallStrokeWidth, GameOptions.wallColor)
-//     .setOrigin(0, 0)
-//     .setClosePath(false)
+        const res = _arg._pWorld.createJoint(joint)
 
-//     _mWorld.addComponent(_e, "renderShape", shape)
+        _arg._mWorld.addComponent(entity, "revJoint", res)
+    })
+}
 
-//     const _body = _pWorld.createBody({
-//         type: "static"
-//     })
-//     const planckCord = renderCord.map(value => {
-//         return {
-//             x: toMeters(value.x),
-//             y: toMeters(value.y)
-//         }
-//     })
-
-//     if(_e.bouncy) {
-//         _body.createFixture({
-//             shape: Chain(planckCord, false),
-//             restitution: _e.bouncy
-//         })
-//     } else {
-//         _body.createFixture({
-//             shape: Chain(planckCord, false)
-//         })
-//     }
-
-//     _body.setUserData({
-//         id: _mWorld.id(_e)
-//     })
-
-//     _mWorld.addComponent(_e, "planck", {
-//         body: _body,
-//         bodyType: "chain"
-//     })
-// }
-
-// function that create flippers based on subscription
-// export const onFlipperEntityCreated = (_e: Entity, _pWorld: World, _mWorld: MWorld, _scene: Scene) => {
-//     const {position, planck, flipperConfig: flippers} = _e
-
-//     if(!flippers || !position) return
-
-//     const shape = _scene.add.rectangle(
-//         position.x,
-//         position.y,
-//         flippers?.width * 2,
-//         flippers?.height * 2,
-//         flippers?.color
-//     )   
-
-//     const jointData = {
-//         enableMotor: true,
-//         enableLimit: true,
-//         maxMotorTorque: 7500.0,
-//         motorSpeed: 0.0,
-//         lowerAngle: 0,
-//         upperAngle: 0
-//     }
-
-//     if (flippers.side === "left") {
-//         jointData.lowerAngle = GameOptions.flipperConfig.left.lowAngle
-//         jointData.upperAngle = GameOptions.flipperConfig.left.highAngle
-//     } else if (flippers.side === "right") {
-//         jointData.lowerAngle = GameOptions.flipperConfig.right.lowAngle
-//         jointData.upperAngle = GameOptions.flipperConfig.right.highAngle
-//     }
-
-//     const body = _pWorld.createDynamicBody({
-//         position: {
-//             x: toMeters(position.x),
-//             y: toMeters(position.y)
-//         },
-//         type: "dynamic"
-//     })
-
-//     body.createFixture({
-//         shape: Box(
-//             toMeters(flippers.width),
-//             toMeters(flippers.height)
-//         ),
-//         density: 1
-//     })
-    
-//     body.setUserData({
-//         id: _mWorld.id(_e)
-//     })
-    
-//     const wall = queries.walls.entities[0]
-//     if(wall.planck?.body && planck) {
-//         const revoluteJoint = RevoluteJoint(
-//             jointData,
-//             body,
-//             wall.planck.body,
-//             {
-//                 x: toMeters(flippers.anchorPoint.x),
-//                 y: toMeters(flippers.anchorPoint.y)
-//             }
-//         )
-        
-//         _pWorld.createJoint(revoluteJoint)
-        
-//         _mWorld.addComponent(_e, "planckRevolute", revoluteJoint)
-//     }
-
-//     _mWorld.addComponent(_e, "renderShape", shape)
-    
-//     if(planck) {
-//         planck.body = body
-//     }
-    
-//     mWorld.addComponent(_e, "motorSpeed", 0)
-// }
-
-// when a shrinkable entity is added, run the shrinking tween if size is larger than 3rd largest ball
-// keep running the tween until the size is 3rd largest
-// export const onShrinkAdded = (_e: Entity, _mWorld: MWorld, _scene: Scene) => {
-//     const {size, shrink} = _e
-//     if(size && shrink) {
-//         if(size <= GameOptions.ballbodies[4].size) {
-//             _mWorld.removeComponent(_e, "shrink")
-//             return
-//         } else {
-//             _scene.time.addEvent({
-//                 delay: shrink.period,
-//                 callback: () => {
-//                     const counter = _scene.tweens.addCounter({
-//                         from: GameOptions.ballbodies[shrink.sizeRank].size,
-//                         to: GameOptions.ballbodies[shrink.sizeRank - 1].size,
-//                         duration: 500,
-//                         delay: 100,
-//                         loop: 0,
-//                         onUpdate: () => {
-//                             _e.size = counter.getValue()
-//                         },
-//                         onComplete: () => {
-//                             if(_e.shrink?.sizeRank) {
-//                                 _e.shrink.sizeRank = shrink.sizeRank - 1
-//                             }
-//                             onShrinkAdded(_e, _mWorld, _scene)
-//                         }
-//                     })
-//                 },
-//                 callbackScope: _scene
-//             })
-//         }
-//     }
-// }
+export const revoluteJointRemovalSubscription = (_arg: SubscriptionArgType) => {
+    return queries.revJoints.onEntityRemoved.subscribe(entity => {
+        _arg._pWorld.destroyJoint(entity.revJoint)
+    })
+}
 
 // handles entities that need sound effects
 export const audioHandlingSys = {
@@ -412,18 +272,14 @@ export const audioHandlingSys = {
 // }
 
 export const onMarkerAdded = (entity: Entity, _mWorld: MWorld, _scene: Scene) => {
-    const { position, sprite } =  entity
+    const { position, spriteObject } =  entity
     const rightBounds = _scene.scale.width * 0.9
     const leftBounds = _scene.scale.width * 0.1
     // const speed = 5
 
-    if (!position || !sprite) return
-    sprite.gameobj = _scene.add.sprite(
-        position.x,
-        position.y,
-        sprite.key
-    )
-    sprite.gameobj.setScale(0.5).setAlpha(0.4)
+    if (!position || !spriteObject) return
+    spriteObject.setScale(0.5).setAlpha(0.4)
+    console.log(spriteObject.active)
 
     const tween = _scene.tweens.addCounter({
         from: leftBounds,
