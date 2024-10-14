@@ -20,7 +20,7 @@
     "devDependencies": {
         "terser": "^5.28.1",
         "typescript": "^5.3.3",
-        "vite": "^5.1.4"
+        "vite": "^5.1.8"
     },
     "dependencies": {
         "miniplex": "^2.0.0",
